@@ -2,14 +2,14 @@
 <!--
 Purpose: Unraid Docker template for a restricted Docker socket proxy used by the SecondBrain voice gateway.
 Input/Output: Unraid reads this XML to render the container form and create the Docker run configuration.
-Invariants: Only low-risk read endpoints are enabled; the proxy is attached to the custom secondbrain_voice_net network.
+Invariants: Only low-risk read endpoints are enabled; the proxy is attached to the existing secondbrain-net network.
 Debugging: If the voice gateway cannot read Docker status, verify this proxy is running, the network exists, and /var/run/docker.sock is mounted read-only.
 -->
 <Container version="2">
   <Name>secondbrain-docker-proxy</Name>
   <Repository>tecnativa/docker-socket-proxy:0.2.3</Repository>
   <Registry>https://hub.docker.com/r/tecnativa/docker-socket-proxy</Registry>
-  <Network>secondbrain_voice_net</Network>
+  <Network>secondbrain-net</Network>
   <MyIP />
   <Shell>sh</Shell>
   <Privileged>false</Privileged>

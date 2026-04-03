@@ -15,8 +15,10 @@ That split keeps the voice gateway away from the raw Docker socket.
 
 - You use Unraid with the standard Docker service enabled.
 - You have shell access to the Unraid host.
-- You want to keep config and secret files under `/mnt/user/appdata/secondbrain-voice-gateway/`.
+- You want to keep config files under `/mnt/user/appdata/secondbrain-voice-gateway/`.
 - You either clone the repository on Unraid or copy it there from another machine.
+- Your existing SecondBrain containers already run on `secondbrain-net`.
+- Your current SecondBrain API is reachable on `http://192.168.57.10:8080`.
 
 ## Template Files
 
@@ -25,14 +27,13 @@ That split keeps the voice gateway away from the raw Docker socket.
 
 ## Unraid Terminal Commands
 
-### 1. Create directories and a dedicated Docker network
+### 1. Create directories and use the existing Docker network
 
 ```bash
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/source
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/configs
-mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/secrets
 mkdir -p /boot/config/plugins/dockerMan/templates-user/my-secondbrain
-docker network create secondbrain_voice_net || true
+docker network create secondbrain-net || true
 ```
 
 ### 2. Put the project source on Unraid
@@ -73,16 +74,7 @@ cp /mnt/user/appdata/secondbrain-voice-gateway/source/configs/troubleshooting_kn
    /mnt/user/appdata/secondbrain-voice-gateway/configs/
 ```
 
-### 5. Create the secret files
-
-```bash
-printf 'YOUR_SECONDBRAIN_TOKEN\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/secondbrain_token.txt
-printf 'YOUR_HOME_ASSISTANT_TOKEN\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/home_assistant_token.txt
-printf '\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/ai_api_key.txt
-chmod 600 /mnt/user/appdata/secondbrain-voice-gateway/secrets/*.txt
-```
-
-### 6. Build the voice gateway image locally on Unraid
+### 5. Build the voice gateway image locally on Unraid
 
 ```bash
 cd /mnt/user/appdata/secondbrain-voice-gateway/source
@@ -98,9 +90,27 @@ docker build -t secondbrain-voice-gateway:local -f docker/Dockerfile .
 5. Adjust at least:
    - `ALEXA_APPLICATION_IDS`
    - `SECOND_BRAIN_BASE_URL`
+   - `SECOND_BRAIN_BEARER_TOKEN` if your SecondBrain API auth is enabled
    - `HOME_ASSISTANT_BASE_URL`
+   - `HOME_ASSISTANT_TOKEN`
    - `DOCKER_BASE_URL`
+   - `AI_ENABLED=true` if you want OpenAI fallback
+   - `AI_BASE_URL=https://api.openai.com/v1`
+   - `AI_MODEL=gpt-4o-mini`
+   - `AI_API_KEY`
 6. Create the gateway container.
+
+Recommended values for your current environment:
+
+- Network: `secondbrain-net`
+- `SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080`
+- `DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375`
+
+If you prefer internal Docker DNS instead of the host IP, you can also try:
+
+- `SECOND_BRAIN_BASE_URL=http://SecondBrain-App:8080`
+
+That last value is an inference from your current container naming and network setup.
 
 ## First Start Checks
 
@@ -119,18 +129,31 @@ If the gateway cannot answer Docker questions:
 ```bash
 docker logs secondbrain-docker-proxy --tail 100
 docker logs secondbrain-voice-gateway --tail 100
-docker network inspect secondbrain_voice_net
+docker network inspect secondbrain-net
 ```
 
 If Home Assistant calls fail:
 
-- check the token file content
+- check the configured Home Assistant token
 - check the entity IDs in `home_assistant_aliases.yml`
 - verify the configured Home Assistant URL is reachable from Unraid
 
 If SecondBrain calls fail:
 
-- verify the bearer token file
+- verify the configured bearer token
 - verify `SECOND_BRAIN_BASE_URL`
 - test `/health` from the Unraid host
+
+## OpenAI Notes
+
+The gateway already supports OpenAI without further code changes.
+
+Set these in the Unraid template:
+
+- `AI_ENABLED=true`
+- `AI_BASE_URL=https://api.openai.com/v1`
+- `AI_MODEL=gpt-4o-mini`
+- `AI_API_KEY=...`
+
+I chose these defaults because OpenAI's API reference documents Chat Completions under the `/v1/chat/completions` path, and the current OpenAI model page describes `gpt-4o-mini` as a fast, affordable model for focused tasks.
 

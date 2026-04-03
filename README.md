@@ -301,9 +301,8 @@ Quick Unraid terminal steps:
 ```bash
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/source
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/configs
-mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/secrets
 mkdir -p /boot/config/plugins/dockerMan/templates-user/my-secondbrain
-docker network create secondbrain_voice_net || true
+docker network create secondbrain-net || true
 ```
 
 Then:
@@ -316,13 +315,13 @@ cp examples/unraid/*.xml /boot/config/plugins/dockerMan/templates-user/my-second
 cp configs/*.yml /mnt/user/appdata/secondbrain-voice-gateway/configs/
 ```
 
-Create the token files:
+For your current environment, start with these values in the Unraid template:
 
 ```bash
-printf 'YOUR_SECONDBRAIN_TOKEN\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/secondbrain_token.txt
-printf 'YOUR_HOME_ASSISTANT_TOKEN\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/home_assistant_token.txt
-printf '\n' > /mnt/user/appdata/secondbrain-voice-gateway/secrets/ai_api_key.txt
-chmod 600 /mnt/user/appdata/secondbrain-voice-gateway/secrets/*.txt
+SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080
+DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
 ```
 
 Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/docs/unraid.md).
