@@ -44,12 +44,20 @@ class AlexaApplication(BaseModel):
     applicationId: str | None = None
 
 
+class AlexaUser(BaseModel):
+    """Represent the Alexa user block needed for single-user allowlisting and future account linking."""
+
+    userId: str | None = None
+    accessToken: str | None = None
+
+
 class AlexaSession(BaseModel):
     """Represent the session section used by most custom skill requests."""
 
     new: bool | None = None
     sessionId: str | None = None
     application: AlexaApplication | None = None
+    user: AlexaUser | None = None
     attributes: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -57,7 +65,7 @@ class AlexaContextSystem(BaseModel):
     """Represent the system context part needed for application ID access."""
 
     application: AlexaApplication | None = None
-    user: dict[str, Any] = Field(default_factory=dict)
+    user: AlexaUser | None = None
 
 
 class AlexaContext(BaseModel):
@@ -87,6 +95,28 @@ class AlexaRequestEnvelope(BaseModel):
         context_system = self.context.System if self.context else None
         if context_system and context_system.application:
             return context_system.application.applicationId
+        return None
+
+    @property
+    def user_id(self) -> str | None:
+        """Resolve the Alexa user ID from session or context data."""
+        session_user_id = self.session.user.userId if self.session and self.session.user else None
+        if session_user_id:
+            return session_user_id
+        context_system = self.context.System if self.context else None
+        if context_system and context_system.user:
+            return context_system.user.userId
+        return None
+
+    @property
+    def access_token(self) -> str | None:
+        """Resolve the linked-account access token when account linking is enabled."""
+        session_token = self.session.user.accessToken if self.session and self.session.user else None
+        if session_token:
+            return session_token
+        context_system = self.context.System if self.context else None
+        if context_system and context_system.user:
+            return context_system.user.accessToken
         return None
 
     def question_text(self) -> str | None:
@@ -133,4 +163,3 @@ class AlexaResponseEnvelope(BaseModel):
     version: str = "1.0"
     response: AlexaResponseBody
     sessionAttributes: dict[str, Any] = Field(default_factory=dict)
-

@@ -41,6 +41,39 @@ def test_alexa_launch_request_returns_prompt() -> None:
     assert "SecondBrain voice gateway is ready" in response.json()["response"]["outputSpeech"]["text"]
 
 
+def test_alexa_launch_request_rejects_disallowed_user() -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            alexa_verify_signature=False,
+            alexa_application_ids=["amzn1.ask.skill.test"],
+            alexa_allowed_user_ids=["amzn1.ask.account.allowed-user"],
+        )
+    )
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {
+            "new": True,
+            "sessionId": "SessionId.unauthorized",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "user": {"userId": "amzn1.ask.account.blocked-user"},
+        },
+        "request": {
+            "type": "LaunchRequest",
+            "requestId": "EdwRequestId.unauthorized",
+            "timestamp": now_iso(),
+            "locale": "en-US",
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Alexa user is not allowed for this gateway."
+
+
 def test_alexa_intent_request_returns_spoken_answer() -> None:
     app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
 

@@ -25,6 +25,7 @@ Current environment values:
 
 - Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
 - HTTPS endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
+- Optional private-use gate: `ALEXA_ALLOWED_USER_IDS=<your Alexa userId>`
 
 ## Endpoint Requirements
 
@@ -44,3 +45,10 @@ Current environment values:
 - If you enable it in Alexa, use these OAuth endpoints:
   - `https://secondbrain-voice.feberdin.de/oauth/authorize`
   - `https://secondbrain-voice.feberdin.de/oauth/token`
+
+## Keeping The Skill Private
+
+- Leave the skill unpublished while you are the only user.
+- For an extra safety layer, set `ALEXA_ALLOWED_USER_IDS` in the gateway config.
+- The value should be your own Alexa `userId` from the request JSON shown in the Alexa developer test tools.
+- With that setting enabled, the gateway rejects requests from other Alexa users even though the HTTPS endpoint is public.

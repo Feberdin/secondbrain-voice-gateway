@@ -18,12 +18,14 @@ def test_settings_load_secret_file_and_csv(monkeypatch, tmp_path: Path) -> None:
 
     monkeypatch.setenv("SECOND_BRAIN_TOKEN_FILE", str(token_file))
     monkeypatch.setenv("ALEXA_APPLICATION_IDS", "skill-a, skill-b")
+    monkeypatch.setenv("ALEXA_ALLOWED_USER_IDS", "user-a, user-b")
     monkeypatch.setenv("REVERSE_PROXY_IP_ALLOWLIST", "127.0.0.1/32,10.0.0.0/24")
 
     settings = Settings(_env_file=None)
 
     assert settings.secondbrain_bearer_token == "super-secret-token"
     assert settings.alexa_application_ids == ["skill-a", "skill-b"]
+    assert settings.alexa_allowed_user_ids == ["user-a", "user-b"]
     assert settings.reverse_proxy_ip_allowlist == ["127.0.0.1/32", "10.0.0.0/24"]
 
 
@@ -40,4 +42,3 @@ def test_safe_debug_snapshot_masks_tokens() -> None:
     assert snapshot["secondbrain_bearer_token"] == "ab***56"
     assert snapshot["home_assistant_token"] == "xy***65"
     assert snapshot["ai_api_key"] == "to***ue"
-

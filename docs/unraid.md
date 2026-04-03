@@ -91,6 +91,7 @@ docker build -t secondbrain-voice-gateway:local -f docker/Dockerfile .
 4. Load `secondbrain-voice-gateway` from your user templates.
 5. Adjust at least:
    - `ALEXA_APPLICATION_IDS`
+   - `ALEXA_ALLOWED_USER_IDS` if the skill should answer only your own Alexa account
    - `SECOND_BRAIN_BASE_URL`
    - `SECOND_BRAIN_BEARER_TOKEN` if your SecondBrain API auth is enabled
    - `HOME_ASSISTANT_BASE_URL`
@@ -107,6 +108,7 @@ Recommended values for your current environment:
 - Network: `secondbrain-net`
 - Web UI host port: `8001`
 - `ALEXA_APPLICATION_IDS=amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
+- `ALEXA_ALLOWED_USER_IDS=<your Alexa userId>` if you want a private single-user setup
 - `SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080`
 - `HOME_ASSISTANT_BASE_URL=http://192.168.57.5:8123`
 - `DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375`

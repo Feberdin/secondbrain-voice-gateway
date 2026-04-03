@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     reverse_proxy_ip_allowlist: list[str] = Field(default_factory=list)
 
     alexa_application_ids: list[str] = Field(default_factory=list)
+    alexa_allowed_user_ids: list[str] = Field(default_factory=list)
     alexa_verify_signature: bool = False
     alexa_signature_tolerance_seconds: int = 150
     alexa_cert_cache_ttl_seconds: int = 3600
@@ -108,7 +109,7 @@ class Settings(BaseSettings):
     ai_model: str | None = None
     ai_timeout_seconds: float = 10.0
 
-    @field_validator("alexa_application_ids", "reverse_proxy_ip_allowlist", mode="before")
+    @field_validator("alexa_application_ids", "alexa_allowed_user_ids", "reverse_proxy_ip_allowlist", mode="before")
     @classmethod
     def _parse_csv_fields(cls, value: Any) -> Any:
         return _split_csv(value)
@@ -153,6 +154,7 @@ class Settings(BaseSettings):
             "trust_x_forwarded_for": self.trust_x_forwarded_for,
             "reverse_proxy_ip_allowlist": self.reverse_proxy_ip_allowlist,
             "alexa_application_ids": self.alexa_application_ids,
+            "alexa_allowed_user_ids": self.alexa_allowed_user_ids,
             "alexa_verify_signature": self.alexa_verify_signature,
             "secondbrain_enabled": self.secondbrain_enabled,
             "secondbrain_base_url": self.secondbrain_base_url,

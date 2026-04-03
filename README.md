@@ -192,6 +192,7 @@ Run tests:
 Important environment variables:
 
 - `ALEXA_APPLICATION_IDS`: comma-separated list of allowed Alexa Skill IDs
+- `ALEXA_ALLOWED_USER_IDS`: optional comma-separated list of allowed Alexa account user IDs for private use
 - `ALEXA_VERIFY_SIGNATURE`: keep `true` in production
 - `SECOND_BRAIN_BASE_URL`: base URL of the existing SecondBrain API
 - `SECOND_BRAIN_QUERY_FIELD_NAME`: JSON field used for `POST /query`
@@ -245,6 +246,12 @@ Account linking note:
 - For this environment the OAuth endpoints are:
   - `https://secondbrain-voice.feberdin.de/oauth/authorize`
   - `https://secondbrain-voice.feberdin.de/oauth/token`
+
+Private-use note:
+
+- If the skill should work only for your own Alexa account, keep the skill in development or beta and set `ALEXA_ALLOWED_USER_IDS` to your own Alexa `userId`.
+- You can find that `userId` in the Alexa developer test request JSON for a live request.
+- This adds a second gate on top of the skill ID and keeps the endpoint publicly reachable for Alexa while limiting who receives answers.
 
 ## Home Assistant Integration Approach
 

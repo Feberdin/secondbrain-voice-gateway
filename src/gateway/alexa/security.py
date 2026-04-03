@@ -55,6 +55,7 @@ class AlexaRequestVerifier:
     ) -> None:
         """Run the configured Alexa validation steps."""
         self._verify_application_id(envelope)
+        self._verify_user_id(envelope)
         self._verify_timestamp(envelope)
         if self.settings.alexa_verify_signature:
             await self._verify_signature(body_bytes, headers)
@@ -66,6 +67,26 @@ class AlexaRequestVerifier:
         application_id = envelope.application_id
         if application_id not in self.settings.alexa_application_ids:
             raise ValueError("Alexa application ID is not allowed for this gateway.")
+
+    def _verify_user_id(self, envelope: AlexaRequestEnvelope) -> None:
+        """
+        Why this exists: A public HTTPS endpoint is still reachable from the internet, so operators may want
+        an additional gate that limits responses to one or a few Alexa accounts.
+        What happens here: If a user allowlist is configured, the request must contain a matching Alexa user ID.
+        Example input/output:
+        - Input: userId not in `ALEXA_ALLOWED_USER_IDS`
+        - Output: ValueError with a clear operator action
+        """
+        if not self.settings.alexa_allowed_user_ids:
+            return
+
+        user_id = envelope.user_id
+        if not user_id:
+            raise ValueError(
+                "Alexa user ID is missing. Disable ALEXA_ALLOWED_USER_IDS or verify the incoming request envelope."
+            )
+        if user_id not in self.settings.alexa_allowed_user_ids:
+            raise ValueError("Alexa user is not allowed for this gateway.")
 
     def _verify_timestamp(self, envelope: AlexaRequestEnvelope) -> None:
         now = datetime.now(UTC)
@@ -125,4 +146,3 @@ class AlexaRequestVerifier:
         now = datetime.now(UTC)
         if certificate.not_valid_before_utc > now or certificate.not_valid_after_utc < now:
             raise ValueError("Alexa certificate is not currently valid.")
-
