@@ -64,6 +64,18 @@ STOP_TEXTS = {
     "genug",
     "nicht weiter",
 }
+CONTINUE_FOLLOW_UP_INTENTS = {
+    "AMAZON.YesIntent",
+    "ContinueIntent",
+}
+POSITIVE_FEEDBACK_INTENTS = {
+    "AMAZON.YesIntent",
+    "PositiveFeedbackIntent",
+}
+NEGATIVE_FOLLOW_UP_INTENTS = {
+    "AMAZON.NoIntent",
+    "NegativeFeedbackIntent",
+}
 
 
 class VoiceQueryRequest(BaseModel):
@@ -267,8 +279,8 @@ async def alexa_skill(request: Request) -> JSONResponse:
             should_end_session=response.response.shouldEndSession,
         )
         return JSONResponse(response.model_dump())
-    if intent_name == "AMAZON.YesIntent":
-        if follow_up_type == FOLLOW_UP_FEEDBACK and feedback_context:
+    if intent_name in CONTINUE_FOLLOW_UP_INTENTS | POSITIVE_FEEDBACK_INTENTS:
+        if follow_up_type == FOLLOW_UP_FEEDBACK and feedback_context and intent_name in POSITIVE_FEEDBACK_INTENTS:
             await _clear_conversation_state(request, envelope)
             response = _build_feedback_ack_response()
             await _record_alexa_event(
@@ -279,7 +291,26 @@ async def alexa_skill(request: Request) -> JSONResponse:
                 reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
                 should_end_session=response.response.shouldEndSession,
                 verification_passed=True,
-                feedback=_feedback_event_payload(feedback_context, helpful=True, utterance="AMAZON.YesIntent"),
+                feedback=_feedback_event_payload(feedback_context, helpful=True, utterance=intent_name),
+            )
+            return JSONResponse(response.model_dump())
+
+        if follow_up_type != FOLLOW_UP_CONTINUATION or intent_name not in CONTINUE_FOLLOW_UP_INTENTS:
+            await _clear_conversation_state(request, envelope)
+            response = _build_alexa_response(
+                speech_text="Ich habe gerade keinen offenen Schritt vorbereitet. Stell mir einfach eine neue Frage.",
+                reprompt_text="Du kannst direkt eine neue Frage stellen.",
+                should_end_session=False,
+            )
+            await _record_alexa_event(
+                request,
+                envelope=envelope,
+                event_type="alexa_follow_up_without_context",
+                speech_text=response.response.outputSpeech.text,
+                reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
+                should_end_session=response.response.shouldEndSession,
+                note=intent_name,
+                verification_passed=True,
             )
             return JSONResponse(response.model_dump())
 
@@ -318,7 +349,7 @@ async def alexa_skill(request: Request) -> JSONResponse:
             verification_passed=True,
         )
         return JSONResponse(response.model_dump())
-    if intent_name == "AMAZON.NoIntent":
+    if intent_name in NEGATIVE_FOLLOW_UP_INTENTS:
         if follow_up_type == FOLLOW_UP_FEEDBACK and feedback_context:
             await _clear_conversation_state(request, envelope)
             response = _build_feedback_ack_response()
@@ -330,7 +361,7 @@ async def alexa_skill(request: Request) -> JSONResponse:
                 reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
                 should_end_session=response.response.shouldEndSession,
                 verification_passed=True,
-                feedback=_feedback_event_payload(feedback_context, helpful=False, utterance="AMAZON.NoIntent"),
+                feedback=_feedback_event_payload(feedback_context, helpful=False, utterance=intent_name),
             )
             return JSONResponse(response.model_dump())
 

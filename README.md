@@ -231,6 +231,7 @@ Why this matters:
 - `AskSystemIntent` and free-form phrases like “Alexa, ask Second Brain ...” are Custom Skill flows.
 - Add `AMAZON.YesIntent` and `AMAZON.NoIntent` so Alexa can continue longer answers in smaller spoken parts.
 - The gateway also uses `AMAZON.YesIntent` and `AMAZON.NoIntent` for the optional feedback prompt after an answer is complete.
+- Import the current example interaction model after updates so explicit German fallback intents such as `ContinueIntent`, `PositiveFeedbackIntent`, and `NegativeFeedbackIntent` are available.
 - Smart Home skills use discovery and directive payloads instead of the intent model implemented by this gateway.
 - Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
 

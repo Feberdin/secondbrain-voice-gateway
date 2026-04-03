@@ -39,6 +39,11 @@ Current environment values:
 - The free-form slot uses `AMAZON.SearchQuery`, which is the best fit for natural spoken questions.
 - For a German `de-DE` skill, keep the sample utterances in German and rebuild the model after changes.
 - Keep `AMAZON.YesIntent` and `AMAZON.NoIntent` in the model so Alexa can continue longer answers in small chunks.
+- Import the latest interaction model from [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json) and rebuild it after gateway updates.
+- The current example model also adds explicit German fallback intents:
+  - `ContinueIntent` for phrases like `weiter` or `lies weiter`
+  - `PositiveFeedbackIntent` for phrases like `hilfreich`
+  - `NegativeFeedbackIntent` for phrases like `nicht hilfreich`
 - `AskSystemIntent` is the main intent for queries such as:
   - “Alexa, öffne Second Brain.”
   - “Frage ob Jellyfin läuft.”

@@ -30,6 +30,35 @@
           "samples": []
         },
         {
+          "name": "ContinueIntent",
+          "samples": [
+            "weiter",
+            "lies weiter",
+            "bitte weiter",
+            "mach weiter",
+            "mehr",
+            "mehr details"
+          ]
+        },
+        {
+          "name": "PositiveFeedbackIntent",
+          "samples": [
+            "hilfreich",
+            "das war hilfreich",
+            "war hilfreich",
+            "gute antwort"
+          ]
+        },
+        {
+          "name": "NegativeFeedbackIntent",
+          "samples": [
+            "nicht hilfreich",
+            "das war nicht hilfreich",
+            "war nicht hilfreich",
+            "schlechte antwort"
+          ]
+        },
+        {
           "name": "AMAZON.YesIntent",
           "samples": []
         },
