@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-bookworm
+    container_name: secondbrain-voice-oauth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: secondbrain_oauth
+      POSTGRES_USER: oauth_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_db_password}
+    volumes:
+      - oauth_postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oauth_user -d secondbrain_oauth"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  oauth-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: secondbrain-voice-oauth
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://oauth_user:${POSTGRES_PASSWORD:-change_me_db_password}@postgres:5432/secondbrain_oauth}
+    ports:
+      - "${OAUTH_HOST_PORT:-3100}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  oauth_postgres_data:
+

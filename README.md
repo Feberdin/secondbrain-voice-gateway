@@ -104,6 +104,7 @@ Why it is structured this way:
 - `AskSystemIntent` with free-form `question` slot
 - deterministic routing for SecondBrain, Home Assistant, Docker, explanation, and troubleshooting
 - optional OpenAI-compatible AI fallback for ambiguous routing or answer compression
+- optional standalone OAuth2 account-linking server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md)
 - structured JSON logs with request IDs
 - `/health`, `/ready`, and `/debug/snapshot`
 - Docker Compose deployment

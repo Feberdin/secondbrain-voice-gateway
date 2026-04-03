@@ -1,0 +1,24 @@
+{
+  "name": "secondbrain-voice-oauth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal OAuth2 authorization server for Alexa account linking.",
+  "scripts": {
+    "start": "node src/server.js",
+    "create-user": "node scripts/create-user.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}
+
