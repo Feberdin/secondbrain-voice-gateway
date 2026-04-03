@@ -12,13 +12,17 @@
             }
           ],
           "samples": [
-            "ask {question}",
-            "tell me {question}",
-            "what is {question}",
-            "whether {question}",
-            "if {question}",
-            "how to {question}",
-            "why {question}"
+            "frage {question}",
+            "sag {question}",
+            "sag mir {question}",
+            "was ist {question}",
+            "ob {question}",
+            "ist {question}",
+            "wie {question}",
+            "warum {question}",
+            "welche {question}",
+            "welcher {question}",
+            "welches {question}"
           ]
         },
         {
@@ -42,4 +46,3 @@
     }
   }
 }
-

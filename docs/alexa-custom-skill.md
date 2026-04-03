@@ -37,10 +37,12 @@ Current environment values:
 ## Interaction Model Notes
 
 - The free-form slot uses `AMAZON.SearchQuery`, which is the best fit for natural spoken questions.
+- For a German `de-DE` skill, keep the sample utterances in German and rebuild the model after changes.
 - `AskSystemIntent` is the main intent for queries such as:
-  - “Alexa, ask Second Brain what SecondBrain is.”
-  - “Alexa, ask Second Brain which contracts expire in the next thirty days.”
-  - “Alexa, ask Second Brain if Jellyfin is running.”
+  - “Alexa, öffne Second Brain.”
+  - “Frage ob Jellyfin läuft.”
+  - “Frage welche Verträge in den nächsten 30 Tagen ablaufen.”
+  - “Frage wie voll meine EcoFlow Batterien sind.”
 - Account linking is optional for the gateway itself.
 - If you enable it in Alexa, use these OAuth endpoints:
   - `https://secondbrain-voice.feberdin.de/oauth/authorize`
