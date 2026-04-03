@@ -203,6 +203,79 @@ def test_alexa_no_intent_ends_session() -> None:
     assert response.json()["response"]["shouldEndSession"] is True
 
 
+def test_alexa_text_continue_reads_continuation_chunk() -> None:
+    app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.continue.text",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "attributes": {
+                "continuation_chunks": [
+                    "Das ist der zweite Teil.",
+                    "Das ist der dritte Teil.",
+                ]
+            },
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.continue.text",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {
+                "name": "AskSystemIntent",
+                "slots": {
+                    "question": {"name": "question", "value": "weiter"}
+                },
+            },
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["response"]["outputSpeech"]["text"] == "Das ist der zweite Teil. Soll ich weiterlesen?"
+    assert body["response"]["shouldEndSession"] is False
+    assert body["sessionAttributes"]["continuation_chunks"] == ["Das ist der dritte Teil."]
+
+
+def test_alexa_text_stop_ends_session_when_continuation_is_present() -> None:
+    app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.stop.text",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "attributes": {"continuation_chunks": ["Das ist der zweite Teil."]},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.stop.text",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {
+                "name": "AskSystemIntent",
+                "slots": {
+                    "question": {"name": "question", "value": "stopp"}
+                },
+            },
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["response"]["outputSpeech"]["text"] == "Alles klar."
+    assert response.json()["response"]["shouldEndSession"] is True
+
+
 def test_alexa_question_is_written_to_request_history(tmp_path) -> None:
     app = create_app(
         Settings(

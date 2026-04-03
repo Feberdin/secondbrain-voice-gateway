@@ -32,6 +32,26 @@ router = APIRouter()
 CONTINUATION_KEY = "continuation_chunks"
 CONTINUATION_REPROMPT = "Wenn du mehr hören möchtest, sag einfach ja. Wenn nicht, sag nein."
 DEFAULT_CARD_TITLE = "SecondBrain Voice Gateway"
+CONTINUE_TEXTS = {
+    "ja",
+    "ja bitte",
+    "weiter",
+    "lies weiter",
+    "bitte weiter",
+    "mach weiter",
+    "mehr",
+    "mehr details",
+    "mehr details bitte",
+}
+STOP_TEXTS = {
+    "nein",
+    "nein danke",
+    "stopp",
+    "stop",
+    "abbrechen",
+    "genug",
+    "nicht weiter",
+}
 
 
 class VoiceQueryRequest(BaseModel):
@@ -300,6 +320,36 @@ async def alexa_skill(request: Request) -> JSONResponse:
         )
         return JSONResponse(response.model_dump())
 
+    continuation_chunks = _continuation_chunks(envelope)
+    normalized_question = _normalize_follow_up_text(question)
+    if continuation_chunks and normalized_question in CONTINUE_TEXTS:
+        response = _build_continuation_response(continuation_chunks)
+        await _record_alexa_event(
+            request,
+            envelope=envelope,
+            event_type="alexa_continue_text",
+            question=question,
+            speech_text=response.response.outputSpeech.text,
+            reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
+            should_end_session=response.response.shouldEndSession,
+            note=f"remaining_chunks={len(response.sessionAttributes.get(CONTINUATION_KEY, []))}",
+            verification_passed=True,
+        )
+        return JSONResponse(response.model_dump())
+
+    if continuation_chunks and normalized_question in STOP_TEXTS:
+        response = _build_alexa_response("Alles klar.", should_end_session=True, reprompt_text=None)
+        await _record_alexa_event(
+            request,
+            envelope=envelope,
+            event_type="alexa_stop_text",
+            question=question,
+            speech_text=response.response.outputSpeech.text,
+            should_end_session=response.response.shouldEndSession,
+            verification_passed=True,
+        )
+        return JSONResponse(response.model_dump())
+
     logger.info("Handling Alexa question at %s", datetime.now(UTC).isoformat())
     result = await request.app.state.orchestrator.handle_question(question)
     session_attributes = {}
@@ -357,6 +407,37 @@ def _continuation_chunks(envelope: AlexaRequestEnvelope) -> list[str]:
     if not isinstance(raw_chunks, list):
         return []
     return [str(chunk).strip() for chunk in raw_chunks if str(chunk).strip()]
+
+
+def _build_continuation_response(continuation_chunks: list[str]) -> AlexaResponseEnvelope:
+    """
+    Continue reading one stored response chunk and keep the session open while text remains.
+
+    Example input/output:
+    - Input: ["Teil zwei", "Teil drei"]
+    - Output: speech="Teil zwei Soll ich weiterlesen?" with the remaining chunk stored in session attributes.
+    """
+
+    speech_text = continuation_chunks[0]
+    remaining_chunks = continuation_chunks[1:]
+    reprompt_text = "Du kannst eine neue Frage stellen."
+    session_attributes: dict[str, Any] = {}
+    if remaining_chunks:
+        speech_text = f"{speech_text} Soll ich weiterlesen?"
+        reprompt_text = CONTINUATION_REPROMPT
+        session_attributes = {CONTINUATION_KEY: remaining_chunks}
+
+    return _build_alexa_response(
+        speech_text=speech_text,
+        reprompt_text=reprompt_text,
+        should_end_session=False,
+        session_attributes=session_attributes,
+    )
+
+
+def _normalize_follow_up_text(text: str) -> str:
+    """Normalize short follow-up phrases so `Ja`, `weiter` and `lies weiter` are treated consistently."""
+    return " ".join(text.strip().lower().split())
 
 
 async def _record_internal_query(request: Request, question: str, result: Any) -> None:
