@@ -250,9 +250,10 @@ class DockerAdapter:
 
     async def _find_container_payload(self, monitor: DockerMonitorConfig) -> dict[str, Any] | None:
         containers = await self._list_containers()
+        expected_name = monitor.container_name.strip().lower()
         for container in containers:
-            names = [name.lstrip("/") for name in container.get("Names", [])]
-            if monitor.container_name in names or container.get("Names") == [f"/{monitor.container_name}"]:
+            names = [name.lstrip("/").strip().lower() for name in container.get("Names", [])]
+            if expected_name in names:
                 return container
         return None
 
@@ -312,4 +313,3 @@ class DockerAdapter:
         health = state.get("Health", {})
         status = health.get("Status")
         return str(status) if status else None
-
