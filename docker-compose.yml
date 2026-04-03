@@ -35,7 +35,7 @@ services:
       start_period: 10s
 
   docker-proxy:
-    image: tecnativa/docker-socket-proxy:0.2.3
+    image: tecnativa/docker-socket-proxy:v0.4.2
     container_name: secondbrain-docker-proxy
     restart: unless-stopped
     environment:
@@ -74,4 +74,3 @@ secrets:
     file: ./secrets/home_assistant_token.txt
   ai_api_key:
     file: ./secrets/ai_api_key.txt
-

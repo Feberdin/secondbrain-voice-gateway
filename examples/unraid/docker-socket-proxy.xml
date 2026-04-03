@@ -7,7 +7,7 @@ Debugging: If the voice gateway cannot read Docker status, verify this proxy is 
 -->
 <Container version="2">
   <Name>secondbrain-docker-proxy</Name>
-  <Repository>tecnativa/docker-socket-proxy:0.2.3</Repository>
+  <Repository>tecnativa/docker-socket-proxy:v0.4.2</Repository>
   <Registry>https://hub.docker.com/r/tecnativa/docker-socket-proxy</Registry>
   <Network>secondbrain-net</Network>
   <MyIP />
@@ -31,6 +31,10 @@ Debugging: If the voice gateway cannot read Docker status, verify this proxy is 
     - secrets
     - volumes
     - write-style POST operations
+
+    Security:
+    - do not publish port 2375 to the host
+    - keep this container only on the internal secondbrain-net Docker network
   </Overview>
   <Category>Tools:Network:</Category>
   <WebUI />
@@ -68,4 +72,3 @@ Debugging: If the voice gateway cannot read Docker status, verify this proxy is 
   <Config Name="Allow TASKS" Target="TASKS" Default="0" Mode="" Description="Disable swarm task endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
   <Config Name="Allow VOLUMES" Target="VOLUMES" Default="0" Mode="" Description="Disable volume control endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
 </Container>
-
