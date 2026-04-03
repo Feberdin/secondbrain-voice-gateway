@@ -7,6 +7,7 @@ Debugging: If Alexa integration breaks, compare these payloads with the live req
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
@@ -200,3 +201,73 @@ def test_alexa_no_intent_ends_session() -> None:
     assert response.status_code == 200
     assert response.json()["response"]["outputSpeech"]["text"] == "Alles klar."
     assert response.json()["response"]["shouldEndSession"] is True
+
+
+def test_alexa_question_is_written_to_request_history(tmp_path) -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            alexa_verify_signature=False,
+            alexa_application_ids=["amzn1.ask.skill.test"],
+            request_history_enabled=True,
+            request_history_dir=tmp_path,
+        )
+    )
+
+    async def fake_handle_question(question: str) -> VoiceQueryResult:
+        return VoiceQueryResult(
+            question=question,
+            prepared_question="wer war ada lovelace",
+            routing=RoutingDecision(
+                route=RouteType.GENERAL_AI,
+                reason="Matched explicit ChatGPT prefix.",
+                matched_rule="explicit_chatgpt_prefix",
+                prepared_question="wer war ada lovelace",
+            ),
+            result=StructuredAnswer(
+                status=ResultStatus.OK,
+                source=SourceType.GENERAL_AI,
+                answer="Ada Lovelace war eine fruehe Pionierin der Informatik.",
+            ),
+            spoken_text="Ada Lovelace war eine fruehe Pionierin der Informatik.",
+            reprompt_text="Du kannst direkt weitermachen.",
+        )
+
+    app.state.orchestrator.handle_question = fake_handle_question
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.history",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "user": {"userId": "amzn1.ask.account.user"},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.history",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {
+                "name": "AskSystemIntent",
+                "slots": {
+                    "question": {"name": "question", "value": "frage chatgpt wer war ada lovelace"}
+                },
+            },
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    history_files = list(tmp_path.glob("*.jsonl"))
+    assert len(history_files) == 1
+    entries = history_files[0].read_text(encoding="utf-8").strip().splitlines()
+    assert len(entries) == 1
+    event = json.loads(entries[0])
+    assert event["event_type"] == "alexa_question"
+    assert event["request"]["question"] == "frage chatgpt wer war ada lovelace"
+    assert event["request"]["prepared_question"] == "wer war ada lovelace"
+    assert event["request"]["routing"]["matched_rule"] == "explicit_chatgpt_prefix"
+    assert event["response"]["source"] == "general_ai"

@@ -59,7 +59,9 @@ class RoutingDecision(BaseModel):
     confidence: float = 1.0
     reason: str
     matched_key: str | None = None
+    matched_rule: str | None = None
     used_ai_fallback: bool = False
+    prepared_question: str | None = None
 
 
 class StructuredAnswer(BaseModel):
@@ -93,6 +95,7 @@ class VoiceQueryResult(BaseModel):
     """Full internal result for REST debug calls and Alexa handling."""
 
     question: str
+    prepared_question: str | None = None
     routing: RoutingDecision
     result: StructuredAnswer
     spoken_text: str

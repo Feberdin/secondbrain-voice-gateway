@@ -99,6 +99,32 @@ async def test_router_uses_general_ai_for_explicit_general_question_patterns_whe
 async def test_router_matches_explicit_chatgpt_phrase() -> None:
     decision = await build_router(StubAiHelper(enabled=True, route_to_return=None)).route("frage chatgpt wer marie curie war")
     assert decision.route == RouteType.GENERAL_AI
+    assert decision.matched_rule == "explicit_chatgpt_prefix"
+    assert decision.prepared_question == "wer marie curie war"
+
+
+@pytest.mark.asyncio
+async def test_router_matches_explicit_paperless_phrase() -> None:
+    decision = await build_router().route("frage paperless welche vertraege enden bald")
+    assert decision.route == RouteType.SECOND_BRAIN
+    assert decision.matched_rule == "explicit_paperless_prefix"
+    assert decision.prepared_question == "welche vertraege enden bald"
+
+
+@pytest.mark.asyncio
+async def test_router_matches_explicit_home_assistant_phrase() -> None:
+    decision = await build_router().route("frage home assistant wie voll sind meine ecoflow batterien")
+    assert decision.route == RouteType.HOME_ASSISTANT_STATE
+    assert decision.matched_rule == "explicit_home_assistant_prefix"
+    assert decision.prepared_question == "wie voll sind meine ecoflow batterien"
+
+
+@pytest.mark.asyncio
+async def test_router_matches_explicit_last_mail_phrase() -> None:
+    decision = await build_router().route("lies mir den inhalt meiner letzten mail vor")
+    assert decision.route == RouteType.SECOND_BRAIN
+    assert decision.matched_rule == "explicit_last_mail_readout"
+    assert "letzten E-Mail" in decision.prepared_question
 
 
 @pytest.mark.asyncio

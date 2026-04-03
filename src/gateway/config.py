@@ -127,6 +127,11 @@ class Settings(BaseSettings):
     ai_model: str | None = None
     ai_timeout_seconds: float = 10.0
 
+    request_history_enabled: bool = False
+    request_history_dir: Path = Path("data/request_history")
+    request_history_include_answers: bool = True
+    request_history_max_answer_chars: int = 2000
+
     @field_validator("alexa_application_ids", "alexa_allowed_user_ids", "reverse_proxy_ip_allowlist", mode="before")
     @classmethod
     def _parse_csv_fields(cls, value: Any) -> Any:
@@ -144,6 +149,7 @@ class Settings(BaseSettings):
         "home_assistant_alias_config_path",
         "docker_monitors_config_path",
         "troubleshooting_config_path",
+        "request_history_dir",
         mode="before",
     )
     @classmethod
@@ -198,6 +204,10 @@ class Settings(BaseSettings):
             "ai_base_url": self.ai_base_url,
             "ai_model": self.ai_model,
             "ai_api_key": self._mask(self.ai_api_key),
+            "request_history_enabled": self.request_history_enabled,
+            "request_history_dir": str(_resolve_path(self.request_history_dir)),
+            "request_history_include_answers": self.request_history_include_answers,
+            "request_history_max_answer_chars": self.request_history_max_answer_chars,
         }
 
     @staticmethod

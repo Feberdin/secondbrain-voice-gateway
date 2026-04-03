@@ -27,6 +27,7 @@ from gateway.routing.classifier import QuestionRouter
 from gateway.security.network import enforce_client_allowlist
 from gateway.services.ai_helper import OptionalAiHelper
 from gateway.services.orchestrator import VoiceGatewayOrchestrator
+from gateway.services.request_history import RequestHistoryRecorder
 from gateway.services.response_composer import ResponseComposer
 from gateway.services.troubleshooting import TroubleshootingService
 from gateway.utils.context import get_request_id, set_request_id
@@ -68,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ai_helper=ai_helper,
     )
     response_composer = ResponseComposer(resolved_settings, ai_helper)
+    request_history_recorder = RequestHistoryRecorder(resolved_settings)
     orchestrator = VoiceGatewayOrchestrator(
         settings=resolved_settings,
         router=router_service,
@@ -86,6 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved_settings
     app.state.alexa_verifier = AlexaRequestVerifier(resolved_settings)
     app.state.orchestrator = orchestrator
+    app.state.request_history = request_history_recorder
 
     @app.middleware("http")
     async def request_context_middleware(request: Request, call_next):  # type: ignore[override]

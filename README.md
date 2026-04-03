@@ -47,6 +47,8 @@ secondbrain-voice-gateway/
 │   ├── docker_services.yml
 │   ├── home_assistant_aliases.yml
 │   └── troubleshooting_knowledge.yml
+├── data/
+│   └── .gitkeep
 ├── docker/
 │   └── Dockerfile
 ├── docs/
@@ -103,9 +105,12 @@ Why it is structured this way:
 - `LaunchRequest`, `IntentRequest`, and `SessionEndedRequest` support
 - `AskSystemIntent` with free-form `question` slot
 - deterministic routing for SecondBrain, Home Assistant, Docker, explanation, and troubleshooting
+- explicit spoken prefixes such as `frage chatgpt`, `frage paperless`, `frage home assistant`, and `frage docker`
+- dedicated latest-mail shortcut for phrases like “lies mir den Inhalt meiner letzten Mail vor”
 - optional OpenAI-compatible AI fallback for ambiguous routing, direct general questions, or answer compression
 - optional standalone OAuth2 account-linking server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md)
 - structured JSON logs with request IDs
+- optional daily JSONL request history for later routing and prompt tuning
 - `/health`, `/ready`, and `/debug/snapshot`
 - Docker Compose deployment
 - example Alexa interaction model
@@ -132,6 +137,7 @@ Leave `ai_api_key.txt` empty if AI mode is disabled.
 
 ```bash
 cp .env.example .env
+mkdir -p data/request_history
 ```
 
 Set at least:
@@ -141,6 +147,7 @@ Set at least:
 - `HOME_ASSISTANT_BASE_URL`
 - `DOCKER_BASE_URL`
 - `ALEXA_VERIFY_SIGNATURE`
+- `REQUEST_HISTORY_ENABLED`
 
 ### 3. Adapt YAML allowlists
 
@@ -201,6 +208,9 @@ Important environment variables:
 - `DOCKER_BASE_URL`: Docker socket proxy base URL
 - `DOCKER_MONITORS_CONFIG_PATH`: monitored container list
 - `AI_ENABLED`, `AI_BASE_URL`, `AI_MODEL`: optional AI mode
+- `REQUEST_HISTORY_ENABLED`: store structured Alexa request history for later improvements
+- `REQUEST_HISTORY_DIR`: writable directory for daily `.jsonl` history files
+- `REQUEST_HISTORY_INCLUDE_ANSWERS`: include spoken answers in the stored history
 - `LOG_LEVEL`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`
 
 Secrets:
@@ -233,6 +243,11 @@ Current production values for this environment:
 Sample utterances handled by the model:
 
 - “Alexa, ask Second Brain what SecondBrain is.”
+- “Alexa, ask Second Brain to ask ChatGPT who Ada Lovelace was.”
+- “Alexa, ask Second Brain to ask Paperless which contracts expire soon.”
+- “Alexa, ask Second Brain to ask Home Assistant how full my house battery is.”
+- “Alexa, ask Second Brain to ask Docker if Jellyfin is running.”
+- “Alexa, ask Second Brain to read the content of my latest mail.”
 - “Alexa, ask Second Brain which contracts expire in the next thirty days.”
 - “Alexa, ask Second Brain how full my EcoFlow batteries are.”
 - “Alexa, ask Second Brain if Jellyfin is running.”
@@ -328,6 +343,7 @@ Quick Unraid terminal steps:
 ```bash
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/source
 mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/configs
+mkdir -p /mnt/user/appdata/secondbrain-voice-gateway/data/request_history
 mkdir -p /boot/config/plugins/dockerMan/templates-user/my-secondbrain
 docker network create secondbrain-net || true
 ```
@@ -357,14 +373,24 @@ Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler
 
 Deterministic routing rules:
 
-1. Safe Home Assistant action aliases plus action verbs
-2. Troubleshooting patterns from YAML
-3. Built-in explanation questions
-4. Docker aliases and status keywords
-5. Home Assistant entity aliases and live-state keywords
-6. SecondBrain document and knowledge keywords
-7. Optional AI fallback
-8. Default fallback to SecondBrain
+1. Explicit spoken prefixes such as `frage chatgpt`, `frage paperless`, `frage home assistant`, and `frage docker`
+2. Explicit latest-mail phrases such as `lies mir den Inhalt meiner letzten Mail vor`
+3. Safe Home Assistant action aliases plus action verbs
+4. Troubleshooting patterns from YAML
+5. Built-in explanation questions
+6. Docker aliases and status keywords
+7. Home Assistant entity aliases and live-state keywords
+8. SecondBrain document and knowledge keywords
+9. Optional AI fallback
+10. Default fallback to SecondBrain
+
+Prefix examples:
+
+- `frage chatgpt warum ist der himmel blau`
+- `frage paperless welche verträge enden bald`
+- `frage home assistant wie voll ist meine hausbatterie`
+- `frage docker läuft jellyfin`
+- `lies mir den inhalt meiner letzten mail vor`
 
 ## Logging, Debugging, and Observability
 
@@ -373,6 +399,7 @@ Logging:
 - JSON logs on stdout
 - request correlation ID in every line
 - no full secret values in debug snapshot
+- optional daily JSONL request history under `REQUEST_HISTORY_DIR`
 
 Endpoints:
 
@@ -387,6 +414,7 @@ Where to look first:
 docker compose logs -f voice-gateway
 docker compose logs -f docker-proxy
 curl http://localhost:8000/ready
+ls -lah data/request_history
 ```
 
 Typical failure modes:
@@ -415,6 +443,7 @@ Typical failure modes:
 
 ```bash
 cp .env.example .env
+mkdir -p data/request_history
 docker compose up -d --build
 curl http://localhost:8000/health
 ```
@@ -427,11 +456,13 @@ If Alexa cannot answer:
 docker compose logs -f voice-gateway
 curl http://localhost:8000/ready
 curl -X POST http://localhost:8000/api/v1/query -H 'Content-Type: application/json' -d '{"question":"is Jellyfin running"}'
+tail -n 5 data/request_history/*.jsonl
 ```
 
 If the answer source seems wrong:
 
 - inspect the routing decision from `POST /api/v1/query`
+- inspect the stored `prepared_question`, `matched_rule`, and `route` inside `data/request_history/*.jsonl`
 - check aliases in [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml)
 - check monitored containers in [`configs/docker_services.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/docker_services.yml)
 - extend troubleshooting entries in [`configs/troubleshooting_knowledge.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/troubleshooting_knowledge.yml)

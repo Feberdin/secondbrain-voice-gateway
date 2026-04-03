@@ -45,25 +45,27 @@ class VoiceGatewayOrchestrator:
 
     async def handle_question(self, question: str) -> VoiceQueryResult:
         decision = await self.router.route(question)
+        prepared_question = decision.prepared_question or question
 
         if decision.route == RouteType.SECOND_BRAIN:
-            result = await self.secondbrain_adapter.ask(question)
+            result = await self.secondbrain_adapter.ask(prepared_question)
         elif decision.route == RouteType.GENERAL_AI:
-            result = await self.ai_helper.answer_general_question(question)
+            result = await self.ai_helper.answer_general_question(prepared_question)
         elif decision.route == RouteType.HOME_ASSISTANT_STATE:
-            result = await self.home_assistant_adapter.answer_state_question(question, decision.matched_key)
+            result = await self.home_assistant_adapter.answer_state_question(prepared_question, decision.matched_key)
         elif decision.route == RouteType.HOME_ASSISTANT_ACTION:
-            result = await self.home_assistant_adapter.execute_action(question, decision.matched_key)
+            result = await self.home_assistant_adapter.execute_action(prepared_question, decision.matched_key)
         elif decision.route == RouteType.DOCKER_STATUS:
-            result = await self.docker_adapter.answer_status_question(question, decision.matched_key)
+            result = await self.docker_adapter.answer_status_question(prepared_question, decision.matched_key)
         elif decision.route == RouteType.TROUBLESHOOTING:
-            result = await self.troubleshooting_service.answer(question, decision.matched_key)
+            result = await self.troubleshooting_service.answer(prepared_question, decision.matched_key)
         else:
             result = self.troubleshooting_service.explain_system()
 
         composed = await self.response_composer.compose(result)
         return VoiceQueryResult(
             question=question,
+            prepared_question=prepared_question,
             routing=decision,
             result=result,
             spoken_text=composed.spoken_text,

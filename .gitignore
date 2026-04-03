@@ -21,3 +21,5 @@ dist/
 build/
 secrets/*
 !secrets/.gitkeep
+data/request_history/
+!data/.gitkeep

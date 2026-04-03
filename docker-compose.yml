@@ -20,6 +20,7 @@ services:
       - "${GATEWAY_PORT:-8000}:8000"
     volumes:
       - ./configs:/app/configs:ro
+      - ./data:/app/data
     secrets:
       - secondbrain_token
       - home_assistant_token

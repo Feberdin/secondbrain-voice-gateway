@@ -46,7 +46,12 @@ class FakeRouter:
         self.ai_helper = ai_helper
 
     async def route(self, question: str) -> RoutingDecision:
-        return RoutingDecision(route=RouteType.GENERAL_AI, reason="test-general-ai")
+        return RoutingDecision(
+            route=RouteType.GENERAL_AI,
+            reason="test-general-ai",
+            prepared_question="wer war ada lovelace",
+            matched_rule="explicit_chatgpt_prefix",
+        )
 
 
 class FakeResponseComposer:
@@ -80,9 +85,10 @@ async def test_orchestrator_routes_general_questions_to_ai_helper() -> None:
         response_composer=FakeResponseComposer(),
     )
 
-    result = await orchestrator.handle_question("Wer war Ada Lovelace?")
+    result = await orchestrator.handle_question("frage chatgpt Wer war Ada Lovelace?")
 
-    assert ai_helper.questions == ["Wer war Ada Lovelace?"]
+    assert ai_helper.questions == ["wer war ada lovelace"]
     assert result.routing.route == RouteType.GENERAL_AI
     assert result.result.source == SourceType.GENERAL_AI
     assert result.spoken_text == "Das ist eine allgemeine KI-Antwort."
+    assert result.prepared_question == "wer war ada lovelace"
