@@ -40,11 +40,16 @@ class SecondBrainAdapter:
             )
 
         url = f"{self.settings.secondbrain_base_url.rstrip('/')}{self.settings.secondbrain_query_path}"
-        payload = {self.settings.secondbrain_query_field_name: question}
+        configured_field = (self.settings.secondbrain_query_field_name or "question").strip() or "question"
 
         try:
             async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
-                response = await client.post(url, json=payload, headers=self._headers())
+                response = await self._post_query_with_fallback(
+                    client=client,
+                    url=url,
+                    question=question,
+                    configured_field=configured_field,
+                )
                 response.raise_for_status()
         except httpx.TimeoutException:
             return StructuredAnswer(
@@ -61,6 +66,20 @@ class SecondBrainAdapter:
                     answer="SecondBrain rejected the request.",
                     next_step="Check the bearer token configured for the voice gateway.",
                     raw={"status_code": exc.response.status_code},
+                )
+            if exc.response.status_code == 422:
+                return StructuredAnswer(
+                    status=ResultStatus.ERROR,
+                    source=SourceType.SECOND_BRAIN,
+                    answer="SecondBrain rejected the query payload.",
+                    next_step=(
+                        "Set SECOND_BRAIN_QUERY_FIELD_NAME to the upstream field name. "
+                        "Common values are `query` and `question`."
+                    ),
+                    raw={
+                        "status_code": exc.response.status_code,
+                        "detail": self._safe_json(exc.response),
+                    },
                 )
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
@@ -82,6 +101,42 @@ class SecondBrainAdapter:
         raw = response.json()
         logger.debug("SecondBrain raw response keys: %s", list(raw.keys()) if isinstance(raw, dict) else type(raw))
         return self._normalize_response(raw)
+
+    async def _post_query_with_fallback(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        question: str,
+        configured_field: str,
+    ) -> httpx.Response:
+        """
+        Why this exists: Real SecondBrain deployments have used both `question` and `query` as POST field names.
+        What happens here: We try the configured field first and only retry on a 422 schema-style rejection.
+        Example input/output:
+        - Input: configured_field="question", upstream says body.query is required
+        - Output: retry once with `query`
+        """
+
+        attempted_fields: list[str] = []
+        response: httpx.Response | None = None
+        for field_name in self._candidate_query_fields(configured_field):
+            attempted_fields.append(field_name)
+            response = await client.post(url, json={field_name: question}, headers=self._headers())
+            if response.status_code != 422:
+                return response
+
+            hinted_field = self._extract_missing_body_field_name(response)
+            if hinted_field and hinted_field not in attempted_fields:
+                logger.info(
+                    "SecondBrain returned 422 for field '%s'. Retrying once with hinted field '%s'.",
+                    field_name,
+                    hinted_field,
+                )
+                response = await client.post(url, json={hinted_field: question}, headers=self._headers())
+                return response
+
+        assert response is not None  # A response always exists after the first POST attempt.
+        return response
 
     async def health_check(self) -> HealthReport:
         """Call the SecondBrain health endpoint for readiness and troubleshooting flows."""
@@ -119,6 +174,50 @@ class SecondBrainAdapter:
             headers["Authorization"] = f"Bearer {self.settings.secondbrain_bearer_token}"
         return headers
 
+    @staticmethod
+    def _candidate_query_fields(configured_field: str) -> list[str]:
+        """Return the configured field first, then the most common upstream alternatives."""
+        ordered_fields = [configured_field, "query", "question"]
+        deduplicated: list[str] = []
+        for field_name in ordered_fields:
+            normalized = field_name.strip()
+            if normalized and normalized not in deduplicated:
+                deduplicated.append(normalized)
+        return deduplicated
+
+    @staticmethod
+    def _extract_missing_body_field_name(response: httpx.Response) -> str | None:
+        """
+        Read FastAPI/Pydantic 422 details and pull out a missing body field name when available.
+
+        Example input/output:
+        - Input: {"detail": [{"loc": ["body", "query"], "msg": "Field required"}]}
+        - Output: "query"
+        """
+        payload = SecondBrainAdapter._safe_json(response)
+        if not isinstance(payload, dict):
+            return None
+        detail = payload.get("detail")
+        if not isinstance(detail, list):
+            return None
+        for entry in detail:
+            if not isinstance(entry, dict):
+                continue
+            location = entry.get("loc")
+            if isinstance(location, list) and len(location) >= 2 and location[0] == "body":
+                field_name = location[1]
+                if isinstance(field_name, str) and field_name.strip():
+                    return field_name.strip()
+        return None
+
+    @staticmethod
+    def _safe_json(response: httpx.Response) -> Any:
+        """Return parsed JSON when possible and otherwise fall back to the raw response text."""
+        try:
+            return response.json()
+        except ValueError:
+            return response.text
+
     def _normalize_response(self, raw: Any) -> StructuredAnswer:
         """
         Why this exists: Existing SecondBrain deployments can evolve their response shape over time.
@@ -141,7 +240,23 @@ class SecondBrainAdapter:
         evidence = self._collect_evidence(raw)
 
         if not answer:
-            items = raw.get("items") or raw.get("results") or []
+            contracts = raw.get("contracts")
+            if isinstance(contracts, list) and contracts:
+                answer = self._summarize_contracts(contracts)
+
+        if not answer:
+            semantic_results = raw.get("semantic_results")
+            if isinstance(semantic_results, list) and semantic_results:
+                answer = self._summarize_semantic_results(semantic_results)
+
+        if not answer:
+            items = (
+                raw.get("items")
+                or raw.get("results")
+                or raw.get("documents")
+                or raw.get("facts")
+                or []
+            )
             if isinstance(items, list) and items:
                 answer = self._summarize_items(items)
 
@@ -176,7 +291,7 @@ class SecondBrainAdapter:
     @staticmethod
     def _collect_evidence(payload: dict[str, Any]) -> list[EvidenceSnippet]:
         evidence: list[EvidenceSnippet] = []
-        for key in ("sources", "documents", "facts"):
+        for key in ("sources", "documents", "facts", "semantic_results", "citations"):
             raw_items = payload.get(key)
             if not isinstance(raw_items, list):
                 continue
@@ -184,8 +299,20 @@ class SecondBrainAdapter:
                 if isinstance(item, dict):
                     evidence.append(
                         EvidenceSnippet(
-                            title=str(item.get("title") or item.get("name") or key.title()),
-                            snippet=str(item.get("snippet") or item.get("summary") or item.get("text") or "")[:240],
+                            title=str(
+                                item.get("title")
+                                or item.get("document_title")
+                                or item.get("name")
+                                or item.get("counterparty")
+                                or key.title()
+                            ),
+                            snippet=str(
+                                item.get("snippet")
+                                or item.get("summary")
+                                or item.get("chunk_text")
+                                or item.get("text")
+                                or ""
+                            )[:240],
                             url=item.get("url"),
                         )
                     )
@@ -203,3 +330,57 @@ class SecondBrainAdapter:
                 parts.append(str(item))
         return "Top results: " + "; ".join(parts)
 
+    @staticmethod
+    def _summarize_contracts(contracts: list[Any]) -> str:
+        """
+        Why this exists: The real SecondBrain `/query` endpoint can return structured contract objects instead of
+        a ready-made answer string.
+        What happens here: We turn the top contract matches into short, spoken summaries with grounded dates/status.
+        Example input/output:
+        - Input: [{"counterparty": "ERGO", "end_date": "2024-10-23", "status": "expired"}]
+        - Output: "I found contract entries. ERGO ended on 2024-10-23."
+        """
+
+        parts: list[str] = []
+        for contract in contracts[:3]:
+            if not isinstance(contract, dict):
+                continue
+
+            counterparty = str(contract.get("counterparty") or contract.get("document_title") or "Unknown contract")
+            status = str(contract.get("status") or "").strip().lower()
+            end_date = str(contract.get("end_date") or contract.get("renewal_date") or "").strip()
+
+            if end_date and status:
+                parts.append(f"{counterparty} is {status} with date {end_date}")
+            elif end_date:
+                parts.append(f"{counterparty} has date {end_date}")
+            elif status:
+                parts.append(f"{counterparty} is {status}")
+            else:
+                parts.append(counterparty)
+
+        if not parts:
+            return ""
+
+        lead = "I found contract entries."
+        return lead + " " + ". ".join(parts) + "."
+
+    @staticmethod
+    def _summarize_semantic_results(results: list[Any]) -> str:
+        """Summarize top semantic matches when the upstream response has no direct answer string."""
+        parts: list[str] = []
+        for result in results[:3]:
+            if not isinstance(result, dict):
+                continue
+            title = str(result.get("document_title") or result.get("title") or "Document match")
+            snippet = str(result.get("chunk_text") or result.get("summary") or "").strip()
+            snippet = snippet.replace("\n", " ")
+            if snippet:
+                parts.append(f"{title}: {snippet[:120].rstrip()}")
+            else:
+                parts.append(title)
+
+        if not parts:
+            return ""
+
+        return "Top document matches: " + "; ".join(parts) + "."

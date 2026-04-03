@@ -54,6 +54,12 @@ class AlexaRequestVerifier:
         envelope: AlexaRequestEnvelope,
     ) -> None:
         """Run the configured Alexa validation steps."""
+        logger.debug(
+            "Starting Alexa verification for application_id=%s user_id_present=%s signature_check=%s",
+            envelope.application_id,
+            bool(envelope.user_id),
+            self.settings.alexa_verify_signature,
+        )
         self._verify_application_id(envelope)
         self._verify_user_id(envelope)
         self._verify_timestamp(envelope)
@@ -101,6 +107,7 @@ class AlexaRequestVerifier:
         if not signature_b64 or not cert_url:
             raise ValueError("Alexa signature headers are missing.")
 
+        logger.debug("Fetching Alexa signing certificate from %s", cert_url)
         cert_pem = await self._fetch_certificate(cert_url)
         certificate = x509.load_pem_x509_certificate(cert_pem)
         self._validate_certificate_metadata(cert_url, certificate)

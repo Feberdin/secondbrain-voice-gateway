@@ -78,17 +78,36 @@ async def alexa_skill(request: Request) -> JSONResponse:
     """
 
     body_bytes = await request.body()
+    logger.info("Received Alexa request body on /alexa/skill with %s bytes.", len(body_bytes))
     envelope = AlexaRequestEnvelope.model_validate_json(body_bytes)
     set_request_id(envelope.request.requestId)
+    logger.info(
+        "Parsed Alexa request type=%s locale=%s application_id=%s user_id_present=%s",
+        envelope.request.type,
+        envelope.request.locale,
+        envelope.application_id,
+        bool(envelope.user_id),
+    )
 
     headers = {key.lower(): value for key, value in request.headers.items()}
     try:
         await request.app.state.alexa_verifier.verify(body_bytes, headers, envelope)
     except ValueError as exc:
+        logger.warning("Rejected Alexa request during verification: %s", exc)
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - operator-facing endpoint should log unexpected verifier failures.
+        logger.exception("Alexa request verification failed unexpectedly.")
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Alexa verification failed unexpectedly. Check outbound HTTPS access, "
+                "certificate validation, and reverse-proxy header forwarding."
+            ),
+        ) from exc
 
     request_type = envelope.request.type
     if request_type == "LaunchRequest":
+        logger.info("Handling Alexa launch request.")
         response = _build_alexa_response(
             speech_text=(
                 "SecondBrain voice gateway is ready. "

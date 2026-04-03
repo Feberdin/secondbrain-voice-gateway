@@ -46,6 +46,24 @@ def _read_secret(secret_value: str | None, secret_file: Path | None) -> str | No
     return None
 
 
+def _normalize_api_path(value: Any) -> Any:
+    """
+    Accept both `query` and `/query` style operator inputs for endpoint paths.
+
+    Example input/output:
+    - Input: "query"
+    - Output: "/query"
+    """
+    if not isinstance(value, str):
+        return value
+    normalized = value.strip()
+    if not normalized:
+        return normalized
+    if not normalized.startswith("/"):
+        normalized = f"/{normalized}"
+    return normalized
+
+
 class Settings(BaseSettings):
     """
     Purpose: Hold every environment-driven runtime setting in one typed object.
@@ -113,6 +131,11 @@ class Settings(BaseSettings):
     @classmethod
     def _parse_csv_fields(cls, value: Any) -> Any:
         return _split_csv(value)
+
+    @field_validator("secondbrain_query_path", "secondbrain_health_path", mode="before")
+    @classmethod
+    def _normalize_secondbrain_paths(cls, value: Any) -> Any:
+        return _normalize_api_path(value)
 
     @field_validator(
         "secondbrain_token_file",

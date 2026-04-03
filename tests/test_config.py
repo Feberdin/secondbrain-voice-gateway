@@ -42,3 +42,14 @@ def test_safe_debug_snapshot_masks_tokens() -> None:
     assert snapshot["secondbrain_bearer_token"] == "ab***56"
     assert snapshot["home_assistant_token"] == "xy***65"
     assert snapshot["ai_api_key"] == "to***ue"
+
+
+def test_secondbrain_paths_accept_missing_leading_slash() -> None:
+    settings = Settings(
+        _env_file=None,
+        secondbrain_query_path="query",
+        secondbrain_health_path="health",
+    )
+
+    assert settings.secondbrain_query_path == "/query"
+    assert settings.secondbrain_health_path == "/health"
