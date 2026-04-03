@@ -1,0 +1,23 @@
+# Purpose: Keep generated files, secrets, and local Python tooling out of git.
+# Input/Output: Git reads this file while deciding what to track.
+# Invariants: Real secrets must never be committed; example files stay versioned.
+# Debugging: If a file is unexpectedly ignored, run `git check-ignore -v <path>`.
+
+.DS_Store
+.env
+.env.local
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+secrets/*
+!secrets/.gitkeep
+

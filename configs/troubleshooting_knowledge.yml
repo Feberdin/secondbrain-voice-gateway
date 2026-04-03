@@ -1,0 +1,77 @@
+# Purpose: Provide grounded troubleshooting summaries and first steps for recurring operational issues.
+# Input/Output: The troubleshooting service reads these entries and may combine them with live health checks.
+# Invariants: Advice here should be concrete, tested, and easier to act on than raw logs alone.
+# Debugging: Add new entries here when the same support question comes up repeatedly.
+
+about_secondbrain: >
+  SecondBrain is a self-hosted companion system for Paperless-ngx. It does not replace Paperless.
+  Paperless stays the archive and source of truth. SecondBrain extracts structured knowledge from
+  documents and email and exposes queryable knowledge through a REST API for AI-assisted workflows.
+
+entries:
+  - key: secondbrain_debug
+    friendly_name: Debug SecondBrain
+    patterns:
+      - how do i debug secondbrain
+      - how to debug secondbrain
+      - debug secondbrain
+    summary: >
+      Start with the gateway logs, then confirm SecondBrain health, Docker container state, and
+      Paperless connectivity. This usually separates app startup issues from upstream integration failures.
+    steps:
+      - Check `docker compose logs -f voice-gateway secondbrain-app`.
+      - Call the SecondBrain `/health` endpoint directly from the gateway network.
+      - Confirm Paperless API access and PostgreSQL connectivity.
+    live_checks:
+      - secondbrain_health
+      - docker_health
+
+  - key: mail_import_failing
+    friendly_name: Mail import failing
+    patterns:
+      - why is mail import not working
+      - why is mail ingestion failing
+      - mail import failing
+    summary: >
+      Mail import problems usually come from IMAP credentials, OAuth device login expiry, or the
+      ingestion worker failing before it can hand data to SecondBrain.
+    steps:
+      - Check the mail ingestion container logs for authentication errors.
+      - Verify IMAP or Outlook OAuth credentials and token refresh state.
+      - Confirm the consume directory exists and is writable.
+    live_checks:
+      - secondbrain_health
+      - docker_health
+
+  - key: chat_port_8081_reset
+    friendly_name: Chat port 8081 resets
+    patterns:
+      - why does chat on port 8081 reset
+      - chat on port 8081 reset
+      - secondbrain chat resets
+    summary: >
+      Port 8081 resets usually point to a crashing chat container, a wrong port mapping, or a reverse
+      proxy that does not forward websocket traffic correctly.
+    steps:
+      - Check whether the chat container is restarting.
+      - Confirm the host-to-container port mapping still exposes 8081.
+      - Verify reverse proxy websocket headers if a proxy sits in front.
+    live_checks:
+      - docker_health
+
+  - key: paperless_connectivity
+    friendly_name: Test Paperless connectivity
+    patterns:
+      - how do i test paperless connectivity
+      - test paperless connectivity
+      - check paperless connectivity
+    summary: >
+      Test Paperless connectivity by confirming DNS reachability, API token validity, and a successful
+      request from SecondBrain to the Paperless API.
+    steps:
+      - Call the Paperless health or API endpoint from the SecondBrain container network.
+      - Confirm the Paperless API token is valid and still mounted.
+      - Review SecondBrain analyzer logs for HTTP authentication or timeout errors.
+    live_checks:
+      - secondbrain_health
+

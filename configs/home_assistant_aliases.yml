@@ -1,0 +1,73 @@
+# Purpose: Map friendly spoken names to Home Assistant entities and explicitly allowed actions.
+# Input/Output: The gateway reads this file at startup and uses it for routing plus response formatting.
+# Invariants: Only actions listed here can be executed from voice input.
+# Debugging: If Alexa says it does not know an entity or action, add or refine the alias phrases here.
+
+entities:
+  - key: ecoflow_battery_soc
+    friendly_name: EcoFlow battery
+    entity_id: sensor.ecoflow_battery_soc
+    aliases:
+      - ecoflow battery
+      - ecoflow batteries
+      - battery state of charge
+      - battery charge
+    response_template: "{friendly_name} is at {value}."
+
+  - key: solar_power
+    friendly_name: solar power
+    entity_id: sensor.solar_power
+    aliases:
+      - solar power
+      - photovoltaic power
+      - pv power
+    response_template: "{friendly_name} is currently {value}."
+
+  - key: house_consumption
+    friendly_name: house consumption
+    entity_id: sensor.house_consumption
+    aliases:
+      - house consumption
+      - home power usage
+      - current power usage
+    response_template: "{friendly_name} is currently {value}."
+
+  - key: paperless_online
+    friendly_name: Paperless availability
+    entity_id: binary_sensor.paperless_online
+    aliases:
+      - paperless status
+      - paperless online
+    state_map:
+      "on": available
+      "off": unavailable
+    response_template: "{friendly_name} is {value}."
+
+actions:
+  - key: ev_charging_on
+    friendly_name: EV charging
+    domain: switch
+    service: turn_on
+    aliases:
+      - ev charging
+      - start ev charging
+      - start car charging
+      - go e charger charging
+    service_data:
+      entity_id: switch.goe_charger_charging
+    confirmation_speech: I turned on EV charging.
+    safety_note: Confirm the vehicle is connected and that the charger accepts the command.
+
+  - key: ev_charging_off
+    friendly_name: EV charging
+    domain: switch
+    service: turn_off
+    aliases:
+      - stop ev charging
+      - stop car charging
+      - turn off ev charging
+    service_data:
+      entity_id: switch.goe_charger_charging
+    confirmation_speech: I turned off EV charging.
+    safety_note: Confirm the charging session can be stopped safely.
+

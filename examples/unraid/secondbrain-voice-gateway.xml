@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<!--
+Purpose: Unraid Docker template for the self-hosted SecondBrain voice gateway container.
+Input/Output: Unraid reads this XML to render the container form and create the Docker run configuration.
+Invariants: The gateway uses mounted config and secret files, a custom Docker network, and a restricted Docker socket proxy.
+Debugging: If the container does not start, first verify the local image tag, mounted config paths, and token files under /mnt/user/appdata/secondbrain-voice-gateway/.
+-->
+<Container version="2">
+  <Name>secondbrain-voice-gateway</Name>
+  <Repository>secondbrain-voice-gateway:local</Repository>
+  <Registry />
+  <Network>secondbrain_voice_net</Network>
+  <MyIP />
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Feberdin/secondbrain-voice-gateway</Support>
+  <Project>https://github.com/Feberdin/secondbrain-voice-gateway</Project>
+  <Overview>
+    SecondBrain voice gateway for Amazon Alexa.
+
+    Features:
+    - SecondBrain REST queries
+    - Home Assistant live state
+    - allowlisted Home Assistant actions
+    - Docker status via docker-socket-proxy
+    - concise Alexa-friendly speech answers
+
+    Important:
+    - Build the image locally on Unraid first with tag `secondbrain-voice-gateway:local`
+    - Start `secondbrain-docker-proxy` before this container
+    - Edit the YAML files under /mnt/user/appdata/secondbrain-voice-gateway/configs/
+    - Put the token files under /mnt/user/appdata/secondbrain-voice-gateway/secrets/
+  </Overview>
+  <Category>Network:Web:HomeAutomation:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/docs</WebUI>
+  <TemplateURL />
+  <Icon />
+  <ExtraParams />
+  <PostArgs />
+  <CPUset />
+  <DateInstalled />
+  <DonateText />
+  <DonateLink />
+  <Requires>secondbrain-docker-proxy</Requires>
+
+  <Config Name="Web UI Port" Target="8000" Default="8000" Mode="tcp" Description="HTTP port for the gateway API and local testing endpoints." Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+
+  <Config Name="Configs Directory" Target="/app/configs" Default="/mnt/user/appdata/secondbrain-voice-gateway/configs" Mode="rw" Description="Directory with YAML alias and troubleshooting configuration files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/secondbrain-voice-gateway/configs</Config>
+  <Config Name="Secrets Directory" Target="/run/secrets" Default="/mnt/user/appdata/secondbrain-voice-gateway/secrets" Mode="ro" Description="Directory with secondbrain_token.txt, home_assistant_token.txt, and optional ai_api_key.txt." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/secondbrain-voice-gateway/secrets</Config>
+
+  <Config Name="Environment" Target="ENVIRONMENT" Default="production" Mode="" Description="Application environment label written to logs and debug snapshot." Type="Variable" Display="always" Required="false" Mask="false">production</Config>
+  <Config Name="Log Level" Target="LOG_LEVEL" Default="INFO" Mode="" Description="Log level: DEBUG, INFO, WARNING, or ERROR." Type="Variable" Display="always" Required="false" Mask="false">INFO</Config>
+  <Config Name="Request Timeout" Target="REQUEST_TIMEOUT_SECONDS" Default="8" Mode="" Description="Timeout in seconds for upstream requests." Type="Variable" Display="advanced" Required="false" Mask="false">8</Config>
+  <Config Name="Debug Endpoints" Target="DEBUG_ENDPOINTS_ENABLED" Default="false" Mode="" Description="Enable /debug/snapshot only in trusted environments." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+
+  <Config Name="Alexa Skill IDs" Target="ALEXA_APPLICATION_IDS" Default="amzn1.ask.skill.change-me" Mode="" Description="Comma-separated allowed Alexa Skill IDs." Type="Variable" Display="always" Required="true" Mask="false">amzn1.ask.skill.change-me</Config>
+  <Config Name="Verify Alexa Signature" Target="ALEXA_VERIFY_SIGNATURE" Default="true" Mode="" Description="Keep true in production. Set false only for controlled local testing." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Alexa Reprompt" Target="ALEXA_ENABLE_REPROMPT" Default="true" Mode="" Description="Enable Alexa reprompts for follow-up questions." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+
+  <Config Name="SecondBrain Base URL" Target="SECOND_BRAIN_BASE_URL" Default="http://secondbrain:8000" Mode="" Description="Base URL of the existing SecondBrain REST API." Type="Variable" Display="always" Required="true" Mask="false">http://secondbrain:8000</Config>
+  <Config Name="SecondBrain Query Path" Target="SECOND_BRAIN_QUERY_PATH" Default="/query" Mode="" Description="SecondBrain query endpoint path." Type="Variable" Display="advanced" Required="false" Mask="false">/query</Config>
+  <Config Name="SecondBrain Health Path" Target="SECOND_BRAIN_HEALTH_PATH" Default="/health" Mode="" Description="SecondBrain health endpoint path." Type="Variable" Display="advanced" Required="false" Mask="false">/health</Config>
+  <Config Name="SecondBrain Query Field" Target="SECOND_BRAIN_QUERY_FIELD_NAME" Default="question" Mode="" Description="JSON field name used for SecondBrain POST /query." Type="Variable" Display="advanced" Required="false" Mask="false">question</Config>
+  <Config Name="SecondBrain Token File" Target="SECOND_BRAIN_TOKEN_FILE" Default="/run/secrets/secondbrain_token.txt" Mode="" Description="Mounted token file for SecondBrain bearer auth." Type="Variable" Display="advanced" Required="true" Mask="false">/run/secrets/secondbrain_token.txt</Config>
+
+  <Config Name="Home Assistant Base URL" Target="HOME_ASSISTANT_BASE_URL" Default="http://homeassistant:8123" Mode="" Description="Base URL of Home Assistant." Type="Variable" Display="always" Required="true" Mask="false">http://homeassistant:8123</Config>
+  <Config Name="Home Assistant Token File" Target="HOME_ASSISTANT_TOKEN_FILE" Default="/run/secrets/home_assistant_token.txt" Mode="" Description="Mounted long-lived Home Assistant token file." Type="Variable" Display="advanced" Required="true" Mask="false">/run/secrets/home_assistant_token.txt</Config>
+  <Config Name="Home Assistant Alias Config" Target="HOME_ASSISTANT_ALIAS_CONFIG_PATH" Default="/app/configs/home_assistant_aliases.yml" Mode="" Description="YAML file containing entity aliases and allowlisted actions." Type="Variable" Display="advanced" Required="true" Mask="false">/app/configs/home_assistant_aliases.yml</Config>
+
+  <Config Name="Docker Proxy Base URL" Target="DOCKER_BASE_URL" Default="http://secondbrain-docker-proxy:2375" Mode="" Description="Base URL of the docker-socket-proxy container on the same custom Docker network." Type="Variable" Display="always" Required="true" Mask="false">http://secondbrain-docker-proxy:2375</Config>
+  <Config Name="Docker Monitor Config" Target="DOCKER_MONITORS_CONFIG_PATH" Default="/app/configs/docker_services.yml" Mode="" Description="YAML file listing monitored containers and first checks." Type="Variable" Display="advanced" Required="true" Mask="false">/app/configs/docker_services.yml</Config>
+  <Config Name="Include Docker Log Hints" Target="DOCKER_INCLUDE_LOG_HINTS" Default="true" Mode="" Description="Include one short summarized log hint when a monitored container looks unhealthy." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+  <Config Name="Docker Logs Tail" Target="DOCKER_LOGS_TAIL" Default="50" Mode="" Description="How many recent log lines the adapter should inspect." Type="Variable" Display="advanced" Required="false" Mask="false">50</Config>
+
+  <Config Name="Troubleshooting Config" Target="TROUBLESHOOTING_CONFIG_PATH" Default="/app/configs/troubleshooting_knowledge.yml" Mode="" Description="YAML file with grounded troubleshooting guidance." Type="Variable" Display="advanced" Required="true" Mask="false">/app/configs/troubleshooting_knowledge.yml</Config>
+
+  <Config Name="Enable AI Mode" Target="AI_ENABLED" Default="false" Mode="" Description="Optional OpenAI-compatible fallback for ambiguous routing or answer compression." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+  <Config Name="AI Base URL" Target="AI_BASE_URL" Default="http://your-openai-compatible-api:11434/v1" Mode="" Description="OpenAI-compatible API base URL, only used when AI mode is enabled." Type="Variable" Display="advanced" Required="false" Mask="false">http://your-openai-compatible-api:11434/v1</Config>
+  <Config Name="AI Model" Target="AI_MODEL" Default="gpt-4o-mini" Mode="" Description="Model name used for the optional AI mode." Type="Variable" Display="advanced" Required="false" Mask="false">gpt-4o-mini</Config>
+  <Config Name="AI API Key File" Target="AI_API_KEY_FILE" Default="/run/secrets/ai_api_key.txt" Mode="" Description="Mounted API key file for the optional AI mode." Type="Variable" Display="advanced" Required="false" Mask="false">/run/secrets/ai_api_key.txt</Config>
+</Container>
+

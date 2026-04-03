@@ -1,0 +1,77 @@
+# Purpose: Run the voice gateway and a restricted Docker socket proxy for safe container status access.
+# Input/Output: `docker compose up -d` reads this file and starts the defined services.
+# Invariants: The gateway never mounts the raw Docker socket directly; only the proxy does.
+# Debugging: Run `docker compose logs -f voice-gateway docker-proxy` when status checks or startup fail.
+
+services:
+  voice-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: secondbrain-voice-gateway
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SECOND_BRAIN_TOKEN_FILE: /run/secrets/secondbrain_token
+      HOME_ASSISTANT_TOKEN_FILE: /run/secrets/home_assistant_token
+      AI_API_KEY_FILE: /run/secrets/ai_api_key
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    volumes:
+      - ./configs:/app/configs:ro
+    secrets:
+      - secondbrain_token
+      - home_assistant_token
+      - ai_api_key
+    depends_on:
+      docker-proxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.2.3
+    container_name: secondbrain-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+      PING: 1
+      POST: 0
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EVENTS: 0
+      EXEC: 0
+      IMAGES: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      SECRETS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /run
+
+secrets:
+  secondbrain_token:
+    file: ./secrets/secondbrain_token.txt
+  home_assistant_token:
+    file: ./secrets/home_assistant_token.txt
+  ai_api_key:
+    file: ./secrets/ai_api_key.txt
+

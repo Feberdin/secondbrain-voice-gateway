@@ -1,0 +1,51 @@
+# Purpose: Define which Docker containers the gateway may talk about and how to describe them.
+# Input/Output: The Docker adapter reads these entries to match spoken names and offer first checks.
+# Invariants: Only monitored containers are exposed through the voice interface.
+# Debugging: Ensure `container_name` exactly matches the real Docker container name.
+
+containers:
+  - key: jellyfin
+    container_name: jellyfin
+    friendly_name: Jellyfin
+    aliases:
+      - jellyfin
+      - media server
+    first_checks:
+      - the container health status
+      - reverse proxy configuration
+      - media volume mounts
+
+  - key: secondbrain_app
+    container_name: secondbrain-app
+    friendly_name: SecondBrain app
+    aliases:
+      - secondbrain app
+      - secondbrain service
+    first_checks:
+      - the SecondBrain health endpoint
+      - PostgreSQL connectivity
+      - Paperless API connectivity
+
+  - key: secondbrain_chat
+    container_name: secondbrain-chat
+    friendly_name: SecondBrain chat
+    aliases:
+      - secondbrain chat
+      - chat service
+      - port 8081 chat
+    first_checks:
+      - port mapping on 8081
+      - reverse proxy websocket support
+      - upstream application logs
+
+  - key: paperless_webserver
+    container_name: paperless-webserver
+    friendly_name: Paperless
+    aliases:
+      - paperless
+      - paperless webserver
+    first_checks:
+      - container health
+      - Paperless API token
+      - consume directory access
+

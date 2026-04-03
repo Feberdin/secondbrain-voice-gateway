@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+Purpose: Unraid Docker template for a restricted Docker socket proxy used by the SecondBrain voice gateway.
+Input/Output: Unraid reads this XML to render the container form and create the Docker run configuration.
+Invariants: Only low-risk read endpoints are enabled; the proxy is attached to the custom secondbrain_voice_net network.
+Debugging: If the voice gateway cannot read Docker status, verify this proxy is running, the network exists, and /var/run/docker.sock is mounted read-only.
+-->
+<Container version="2">
+  <Name>secondbrain-docker-proxy</Name>
+  <Repository>tecnativa/docker-socket-proxy:0.2.3</Repository>
+  <Registry>https://hub.docker.com/r/tecnativa/docker-socket-proxy</Registry>
+  <Network>secondbrain_voice_net</Network>
+  <MyIP />
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Tecnativa/docker-socket-proxy</Support>
+  <Project>https://github.com/Tecnativa/docker-socket-proxy</Project>
+  <Overview>
+    Restricted Docker socket proxy for the SecondBrain voice gateway.
+
+    Enabled API capabilities:
+    - PING
+    - INFO
+    - CONTAINERS
+
+    Disabled:
+    - image management
+    - builds
+    - exec
+    - swarm
+    - secrets
+    - volumes
+    - write-style POST operations
+  </Overview>
+  <Category>Tools:Network:</Category>
+  <WebUI />
+  <TemplateURL />
+  <Icon />
+  <ExtraParams />
+  <PostArgs />
+  <CPUset />
+  <DateInstalled />
+  <DonateText />
+  <DonateLink />
+
+  <Config Name="Docker Socket" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="ro" Description="Read-only mount of the Unraid Docker socket." Type="Path" Display="always" Required="true" Mask="false">/var/run/docker.sock</Config>
+
+  <Config Name="Allow CONTAINERS" Target="CONTAINERS" Default="1" Mode="" Description="Allow read access to container list, inspect, and logs endpoints." Type="Variable" Display="always" Required="true" Mask="false">1</Config>
+  <Config Name="Allow INFO" Target="INFO" Default="1" Mode="" Description="Allow read access to Docker daemon info." Type="Variable" Display="advanced" Required="true" Mask="false">1</Config>
+  <Config Name="Allow PING" Target="PING" Default="1" Mode="" Description="Allow the lightweight /_ping endpoint for readiness checks." Type="Variable" Display="advanced" Required="true" Mask="false">1</Config>
+  <Config Name="Allow POST" Target="POST" Default="0" Mode="" Description="Keep disabled so the proxy remains read-only for the voice gateway." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow AUTH" Target="AUTH" Default="0" Mode="" Description="Disable unrelated Docker API groups unless you explicitly need them." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow BUILD" Target="BUILD" Default="0" Mode="" Description="Disable image build control through the proxy." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow COMMIT" Target="COMMIT" Default="0" Mode="" Description="Disable image commit control through the proxy." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow CONFIGS" Target="CONFIGS" Default="0" Mode="" Description="Disable swarm config access." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow DISTRIBUTION" Target="DISTRIBUTION" Default="0" Mode="" Description="Disable registry distribution endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow EVENTS" Target="EVENTS" Default="0" Mode="" Description="Disable event streaming." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow EXEC" Target="EXEC" Default="0" Mode="" Description="Disable remote exec support." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow IMAGES" Target="IMAGES" Default="0" Mode="" Description="Disable image inspection and mutation endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow NETWORKS" Target="NETWORKS" Default="0" Mode="" Description="Disable network control through the proxy." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow NODES" Target="NODES" Default="0" Mode="" Description="Disable swarm node endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow PLUGINS" Target="PLUGINS" Default="0" Mode="" Description="Disable Docker plugin endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow SECRETS" Target="SECRETS" Default="0" Mode="" Description="Disable swarm secret endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow SERVICES" Target="SERVICES" Default="0" Mode="" Description="Disable swarm service endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow SESSION" Target="SESSION" Default="0" Mode="" Description="Disable session endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow SWARM" Target="SWARM" Default="0" Mode="" Description="Disable swarm endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow SYSTEM" Target="SYSTEM" Default="0" Mode="" Description="Disable broader system control endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow TASKS" Target="TASKS" Default="0" Mode="" Description="Disable swarm task endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+  <Config Name="Allow VOLUMES" Target="VOLUMES" Default="0" Mode="" Description="Disable volume control endpoints." Type="Variable" Display="advanced" Required="true" Mask="false">0</Config>
+</Container>
+
