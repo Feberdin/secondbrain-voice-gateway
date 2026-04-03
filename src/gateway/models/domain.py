@@ -95,6 +95,7 @@ class VoiceQueryResult(BaseModel):
     result: StructuredAnswer
     spoken_text: str
     reprompt_text: str | None = None
+    continuation_chunks: list[str] = Field(default_factory=list)
 
 
 class HomeAssistantStateAlias(BaseModel):
@@ -165,4 +166,3 @@ class TroubleshootingConfig(BaseModel):
         "from documents and email so that the knowledge becomes queryable."
     )
     entries: list[TroubleshootingEntry] = Field(default_factory=list)
-

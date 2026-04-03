@@ -8,7 +8,7 @@ Use a `Custom Skill`, not a `Smart Home` skill.
 
 Why:
 
-- This project expects `LaunchRequest`, `IntentRequest`, and `AskSystemIntent`.
+- This project expects `LaunchRequest`, `IntentRequest`, `AskSystemIntent`, and simple follow-up intents such as `AMAZON.YesIntent` and `AMAZON.NoIntent`.
 - The spoken pattern “Alexa, ask Second Brain ...” is a Custom Skill pattern.
 - Smart Home skills use Alexa discovery and directive payloads instead of the interaction model in this repository.
 - If you want account linking, add it to the Custom Skill with the OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
@@ -38,6 +38,7 @@ Current environment values:
 
 - The free-form slot uses `AMAZON.SearchQuery`, which is the best fit for natural spoken questions.
 - For a German `de-DE` skill, keep the sample utterances in German and rebuild the model after changes.
+- Keep `AMAZON.YesIntent` and `AMAZON.NoIntent` in the model so Alexa can continue longer answers in small chunks.
 - `AskSystemIntent` is the main intent for queries such as:
   - “Alexa, öffne Second Brain.”
   - “Frage ob Jellyfin läuft.”

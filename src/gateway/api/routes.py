@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -27,6 +28,9 @@ from gateway.utils.context import set_request_id
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+CONTINUATION_KEY = "continuation_chunks"
+CONTINUATION_REPROMPT = "Wenn du mehr hören möchtest, sag einfach ja. Wenn nicht, sag nein."
+DEFAULT_CARD_TITLE = "SecondBrain Voice Gateway"
 
 
 class VoiceQueryRequest(BaseModel):
@@ -110,16 +114,16 @@ async def alexa_skill(request: Request) -> JSONResponse:
         logger.info("Handling Alexa launch request.")
         response = _build_alexa_response(
             speech_text=(
-                "SecondBrain voice gateway is ready. "
-                "Ask about contracts, Home Assistant sensors, Docker services, or a safe action."
+                "SecondBrain ist bereit. "
+                "Du kannst mich nach Verträgen, Dokumenten, Home Assistant oder Docker fragen."
             ),
-            reprompt_text="Try asking how full your EcoFlow batteries are or whether Jellyfin is running.",
+            reprompt_text="Frag zum Beispiel, ob Jellyfin läuft oder welche Verträge bald enden.",
             should_end_session=False,
         )
         return JSONResponse(response.model_dump())
 
     if request_type == "SessionEndedRequest":
-        response = _build_alexa_response("Session ended.", should_end_session=True, reprompt_text=None)
+        response = _build_alexa_response("Sitzung beendet.", should_end_session=True, reprompt_text=None)
         return JSONResponse(response.model_dump())
 
     if request_type != "IntentRequest" or not envelope.request.intent:
@@ -129,47 +133,80 @@ async def alexa_skill(request: Request) -> JSONResponse:
     if intent_name == "AMAZON.HelpIntent":
         response = _build_alexa_response(
             speech_text=(
-                "You can ask me about SecondBrain knowledge, live Home Assistant values, Docker service status, "
-                "or a safe action like turning on EV charging."
+                "Du kannst mich nach SecondBrain Wissen, Live-Werten aus Home Assistant oder dem Status deiner Docker-Dienste fragen. "
+                "Wenn eine Antwort länger ist, frage ich dich, ob ich weiterlesen soll."
             ),
-            reprompt_text="For example, ask which contracts expire in the next thirty days.",
+            reprompt_text="Frag zum Beispiel, welche Verträge in den nächsten dreißig Tagen enden.",
             should_end_session=False,
         )
         return JSONResponse(response.model_dump())
+    if intent_name == "AMAZON.YesIntent":
+        continuation_chunks = _continuation_chunks(envelope)
+        if not continuation_chunks:
+            response = _build_alexa_response(
+                speech_text="Ich habe gerade nichts Weiteres zum Vorlesen vorbereitet.",
+                reprompt_text="Du kannst eine neue Frage stellen.",
+                should_end_session=False,
+            )
+            return JSONResponse(response.model_dump())
+
+        speech_text = continuation_chunks[0]
+        remaining_chunks = continuation_chunks[1:]
+        reprompt_text = "Du kannst eine neue Frage stellen."
+        session_attributes: dict[str, Any] = {}
+        if remaining_chunks:
+            speech_text = f"{speech_text} Soll ich weiterlesen?"
+            reprompt_text = CONTINUATION_REPROMPT
+            session_attributes = {CONTINUATION_KEY: remaining_chunks}
+
+        response = _build_alexa_response(
+            speech_text=speech_text,
+            reprompt_text=reprompt_text,
+            should_end_session=False,
+            session_attributes=session_attributes,
+        )
+        return JSONResponse(response.model_dump())
+    if intent_name == "AMAZON.NoIntent":
+        response = _build_alexa_response("Alles klar.", should_end_session=True, reprompt_text=None)
+        return JSONResponse(response.model_dump())
     if intent_name in {"AMAZON.StopIntent", "AMAZON.CancelIntent"}:
-        response = _build_alexa_response("Goodbye.", should_end_session=True, reprompt_text=None)
+        response = _build_alexa_response("Bis bald.", should_end_session=True, reprompt_text=None)
         return JSONResponse(response.model_dump())
     if intent_name == "AMAZON.FallbackIntent":
         response = _build_alexa_response(
-            speech_text="I did not understand that request. Try a question about SecondBrain, Home Assistant, or Docker.",
-            reprompt_text="For example, ask if Jellyfin is running.",
+            speech_text="Das habe ich nicht verstanden. Stell mir bitte eine Frage zu Dokumenten, Home Assistant oder Docker.",
+            reprompt_text="Frag zum Beispiel, ob Jellyfin läuft.",
             should_end_session=False,
         )
         return JSONResponse(response.model_dump())
 
     if intent_name != "AskSystemIntent":
         response = _build_alexa_response(
-            speech_text="That intent is not configured for this skill.",
-            reprompt_text="Try asking a free-form question with Ask System.",
+            speech_text="Dieser Befehl ist für diese Alexa Skill nicht eingerichtet.",
+            reprompt_text="Stell mir bitte einfach eine freie Frage.",
         )
         return JSONResponse(response.model_dump())
 
     question = envelope.question_text()
     if not question:
         response = _build_alexa_response(
-            speech_text="I did not catch the question text. Please try again with a full request.",
-            reprompt_text="Try asking what SecondBrain is or whether Jellyfin is running.",
+            speech_text="Ich habe den Fragetext nicht verstanden. Bitte versuch es noch einmal als ganze Frage.",
+            reprompt_text="Frag zum Beispiel, was SecondBrain ist oder ob Jellyfin läuft.",
             should_end_session=False,
         )
         return JSONResponse(response.model_dump())
 
     logger.info("Handling Alexa question at %s", datetime.now(UTC).isoformat())
     result = await request.app.state.orchestrator.handle_question(question)
+    session_attributes = {}
+    if result.continuation_chunks:
+        session_attributes[CONTINUATION_KEY] = result.continuation_chunks
     response = _build_alexa_response(
         speech_text=result.spoken_text,
         reprompt_text=result.reprompt_text,
-        card_text=result.result.details or result.spoken_text,
+        card_text=result.result.answer,
         should_end_session=False,
+        session_attributes=session_attributes,
     )
     return JSONResponse(response.model_dump())
 
@@ -179,6 +216,7 @@ def _build_alexa_response(
     reprompt_text: str | None = None,
     card_text: str | None = None,
     should_end_session: bool = True,
+    session_attributes: dict[str, Any] | None = None,
 ) -> AlexaResponseEnvelope:
     """Build one Alexa-compatible response envelope from plain text inputs."""
     if reprompt_text and should_end_session:
@@ -187,10 +225,19 @@ def _build_alexa_response(
     response = AlexaResponseBody(
         outputSpeech=AlexaOutputSpeech(text=speech_text),
         card=AlexaCard(
-            title="SecondBrain Voice Gateway",
+            title=DEFAULT_CARD_TITLE,
             content=card_text or speech_text,
         ),
         shouldEndSession=should_end_session,
         reprompt=AlexaReprompt(outputSpeech=AlexaOutputSpeech(text=reprompt_text)) if reprompt_text else None,
     )
-    return AlexaResponseEnvelope(response=response)
+    return AlexaResponseEnvelope(response=response, sessionAttributes=session_attributes or {})
+
+
+def _continuation_chunks(envelope: AlexaRequestEnvelope) -> list[str]:
+    """Read continuation state from the Alexa session and normalize it into a string list."""
+    attributes = envelope.session.attributes if envelope.session else {}
+    raw_chunks = attributes.get(CONTINUATION_KEY, [])
+    if not isinstance(raw_chunks, list):
+        return []
+    return [str(chunk).strip() for chunk in raw_chunks if str(chunk).strip()]

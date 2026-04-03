@@ -38,7 +38,7 @@ def test_alexa_launch_request_returns_prompt() -> None:
     response = client.post("/alexa/skill", json=payload)
 
     assert response.status_code == 200
-    assert "SecondBrain voice gateway is ready" in response.json()["response"]["outputSpeech"]["text"]
+    assert "SecondBrain ist bereit" in response.json()["response"]["outputSpeech"]["text"]
     assert response.json()["response"]["shouldEndSession"] is False
     assert "reprompt" in response.json()["response"]
 
@@ -87,10 +87,10 @@ def test_alexa_intent_request_returns_spoken_answer() -> None:
             result=StructuredAnswer(
                 status=ResultStatus.OK,
                 source=SourceType.LOCAL,
-                answer="SecondBrain is your document knowledge layer.",
+                answer="SecondBrain ist deine Wissensschicht für Dokumente.",
             ),
-            spoken_text="SecondBrain is your document knowledge layer.",
-            reprompt_text="You can ask a follow-up question.",
+            spoken_text="SecondBrain ist deine Wissensschicht für Dokumente.",
+            reprompt_text="Du kannst direkt eine weitere Frage stellen.",
         )
 
     app.state.orchestrator.handle_question = fake_handle_question
@@ -117,8 +117,8 @@ def test_alexa_intent_request_returns_spoken_answer() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["response"]["outputSpeech"]["text"] == "SecondBrain is your document knowledge layer."
-    assert body["response"]["reprompt"]["outputSpeech"]["text"] == "You can ask a follow-up question."
+    assert body["response"]["outputSpeech"]["text"] == "SecondBrain ist deine Wissensschicht für Dokumente."
+    assert body["response"]["reprompt"]["outputSpeech"]["text"] == "Du kannst direkt eine weitere Frage stellen."
 
 
 def test_alexa_fallback_keeps_session_open() -> None:
@@ -142,3 +142,61 @@ def test_alexa_fallback_keeps_session_open() -> None:
     assert response.status_code == 200
     assert response.json()["response"]["shouldEndSession"] is False
     assert "reprompt" in response.json()["response"]
+
+
+def test_alexa_yes_intent_reads_continuation_chunk() -> None:
+    app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.continue",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "attributes": {
+                "continuation_chunks": [
+                    "Das ist der zweite Teil.",
+                    "Das ist der dritte Teil.",
+                ]
+            },
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.yes",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {"name": "AMAZON.YesIntent", "slots": {}},
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["response"]["outputSpeech"]["text"] == "Das ist der zweite Teil. Soll ich weiterlesen?"
+    assert body["response"]["shouldEndSession"] is False
+    assert body["sessionAttributes"]["continuation_chunks"] == ["Das ist der dritte Teil."]
+
+
+def test_alexa_no_intent_ends_session() -> None:
+    app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "SessionId.no", "application": {"applicationId": "amzn1.ask.skill.test"}},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.no",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {"name": "AMAZON.NoIntent", "slots": {}},
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["response"]["outputSpeech"]["text"] == "Alles klar."
+    assert response.json()["response"]["shouldEndSession"] is True

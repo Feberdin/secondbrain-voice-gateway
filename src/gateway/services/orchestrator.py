@@ -58,13 +58,14 @@ class VoiceGatewayOrchestrator:
         else:
             result = self.troubleshooting_service.explain_system()
 
-        spoken_text, reprompt_text = await self.response_composer.compose(result)
+        composed = await self.response_composer.compose(result)
         return VoiceQueryResult(
             question=question,
             routing=decision,
             result=result,
-            spoken_text=spoken_text,
-            reprompt_text=reprompt_text,
+            spoken_text=composed.spoken_text,
+            reprompt_text=composed.reprompt_text,
+            continuation_chunks=composed.continuation_chunks,
         )
 
     async def readiness(self) -> list[HealthReport]:
@@ -85,4 +86,3 @@ class VoiceGatewayOrchestrator:
             "docker_monitors": [monitor.model_dump() for monitor in self.docker_adapter.monitors()],
             "troubleshooting_entries": [entry.model_dump() for entry in self.troubleshooting_service.entries()],
         }
-

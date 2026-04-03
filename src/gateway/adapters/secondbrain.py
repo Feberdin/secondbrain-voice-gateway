@@ -236,7 +236,7 @@ class SecondBrainAdapter:
                 raw={"raw_type": str(type(raw))},
             )
 
-        answer = self._first_text(raw, "answer", "summary", "result", "text", "message")
+        answer = self._first_text(raw, "answer_preview", "answer", "summary", "result", "text", "message")
         evidence = self._collect_evidence(raw)
 
         if not answer:
@@ -264,8 +264,8 @@ class SecondBrainAdapter:
             return StructuredAnswer(
                 status=ResultStatus.UNCERTAIN,
                 source=SourceType.SECOND_BRAIN,
-                answer="SecondBrain returned data, but no short answer was available.",
-                next_step="Check the upstream response body in the gateway debug logs.",
+                answer="Ich habe Daten gefunden, aber noch keine kurze Sprachantwort daraus gebildet.",
+                next_step="Prüfe die Upstream-Antwort in den Gateway-Debug-Logs.",
                 evidence=evidence,
                 raw=raw,
             )
@@ -275,7 +275,7 @@ class SecondBrainAdapter:
             source=SourceType.SECOND_BRAIN,
             answer=answer.strip(),
             details=self._first_text(raw, "details", "debug", "context"),
-            next_step="Ask a follow-up question if you want more detail.",
+            next_step="Frage nach mehr Details, wenn du mehr wissen möchtest.",
             evidence=evidence,
             raw=raw,
         )
@@ -323,12 +323,18 @@ class SecondBrainAdapter:
         parts: list[str] = []
         for item in items[:3]:
             if isinstance(item, dict):
-                label = item.get("title") or item.get("name") or item.get("id") or "result"
-                value = item.get("summary") or item.get("text") or item.get("status") or "available"
+                label = item.get("friendly_name") or item.get("title") or item.get("name") or item.get("id") or "Treffer"
+                value = (
+                    item.get("paperless_note_summary")
+                    or item.get("summary")
+                    or item.get("text")
+                    or item.get("status")
+                    or "gefunden"
+                )
                 parts.append(f"{label}: {value}")
             else:
                 parts.append(str(item))
-        return "Top results: " + "; ".join(parts)
+        return "Ich habe passende Treffer gefunden. " + " ".join(parts)
 
     @staticmethod
     def _summarize_contracts(contracts: list[Any]) -> str:
@@ -338,7 +344,7 @@ class SecondBrainAdapter:
         What happens here: We turn the top contract matches into short, spoken summaries with grounded dates/status.
         Example input/output:
         - Input: [{"counterparty": "ERGO", "end_date": "2024-10-23", "status": "expired"}]
-        - Output: "I found contract entries. ERGO ended on 2024-10-23."
+        - Output: "Ich habe Vertragsdaten gefunden. ERGO endete am 2024-10-23."
         """
 
         parts: list[str] = []
@@ -351,18 +357,18 @@ class SecondBrainAdapter:
             end_date = str(contract.get("end_date") or contract.get("renewal_date") or "").strip()
 
             if end_date and status:
-                parts.append(f"{counterparty} is {status} with date {end_date}")
+                parts.append(f"{counterparty} ist {status} mit Datum {end_date}")
             elif end_date:
-                parts.append(f"{counterparty} has date {end_date}")
+                parts.append(f"{counterparty} hat das Datum {end_date}")
             elif status:
-                parts.append(f"{counterparty} is {status}")
+                parts.append(f"{counterparty} ist {status}")
             else:
                 parts.append(counterparty)
 
         if not parts:
             return ""
 
-        lead = "I found contract entries."
+        lead = "Ich habe Vertragsdaten gefunden."
         return lead + " " + ". ".join(parts) + "."
 
     @staticmethod
@@ -372,15 +378,26 @@ class SecondBrainAdapter:
         for result in results[:3]:
             if not isinstance(result, dict):
                 continue
-            title = str(result.get("document_title") or result.get("title") or "Document match")
-            snippet = str(result.get("chunk_text") or result.get("summary") or "").strip()
-            snippet = snippet.replace("\n", " ")
+            title = str(result.get("document_title") or result.get("title") or "Dokumenttreffer")
+            summary = (
+                result.get("paperless_note_summary")
+                or result.get("summary")
+                or result.get("snippet")
+                or ""
+            )
+            snippet = str(summary or result.get("chunk_text") or "").strip().replace("\n", " ")
             if snippet:
                 parts.append(f"{title}: {snippet[:120].rstrip()}")
+                continue
+
+            counterparty = result.get("counterparty")
+            created_date = result.get("created_date") or result.get("created")
+            if counterparty and created_date:
+                parts.append(f"{counterparty} vom {created_date}")
             else:
                 parts.append(title)
 
         if not parts:
             return ""
 
-        return "Top document matches: " + "; ".join(parts) + "."
+        return "Ich habe passende Dokumente gefunden. " + " ".join(parts) + "."

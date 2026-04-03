@@ -215,6 +215,7 @@ Use a `Custom Skill` for this project, not a `Smart Home` skill.
 Why this matters:
 
 - `AskSystemIntent` and free-form phrases like “Alexa, ask Second Brain ...” are Custom Skill flows.
+- Add `AMAZON.YesIntent` and `AMAZON.NoIntent` so Alexa can continue longer answers in smaller spoken parts.
 - Smart Home skills use discovery and directive payloads instead of the intent model implemented by this gateway.
 - Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
 
