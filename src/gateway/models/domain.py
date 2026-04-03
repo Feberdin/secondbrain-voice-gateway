@@ -17,6 +17,7 @@ class RouteType(str, Enum):
     """Deterministic routes supported by the voice gateway."""
 
     SECOND_BRAIN = "secondbrain_query"
+    GENERAL_AI = "general_ai"
     HOME_ASSISTANT_STATE = "home_assistant_state"
     HOME_ASSISTANT_ACTION = "home_assistant_action"
     DOCKER_STATUS = "docker_status"
@@ -36,6 +37,7 @@ class SourceType(str, Enum):
     """Grounding sources announced in concise spoken form."""
 
     SECOND_BRAIN = "secondbrain"
+    GENERAL_AI = "general_ai"
     HOME_ASSISTANT = "home_assistant"
     DOCKER = "docker"
     TROUBLESHOOTING = "troubleshooting"

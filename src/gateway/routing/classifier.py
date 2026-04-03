@@ -31,17 +31,133 @@ class QuestionRouter:
     Debugging: Review alias YAML files first when a question routes somewhere unexpected.
     """
 
-    ACTION_VERBS = ("turn on", "turn off", "start", "stop", "enable", "disable", "activate", "deactivate")
-    TROUBLESHOOTING_HINTS = ("debug", "troubleshoot", "why", "not working", "failing", "reset", "connectivity", "test")
-    DOCKER_HINTS = ("docker", "container", "service", "running", "unhealthy", "restart", "logs")
-    HOME_ASSISTANT_HINTS = ("battery", "solar", "power", "consumption", "sensor", "entity", "home assistant")
-    SECOND_BRAIN_HINTS = ("contract", "contracts", "document", "documents", "facts", "timeline", "paperless", "mail")
+    ACTION_VERBS = (
+        "turn on",
+        "turn off",
+        "start",
+        "stop",
+        "enable",
+        "disable",
+        "activate",
+        "deactivate",
+        "schalte",
+        "mach an",
+        "mach aus",
+        "starte",
+        "stoppe",
+        "aktiviere",
+        "deaktiviere",
+    )
+    TROUBLESHOOTING_HINTS = (
+        "debug",
+        "troubleshoot",
+        "why",
+        "not working",
+        "failing",
+        "reset",
+        "connectivity",
+        "test",
+        "warum",
+        "wieso",
+        "weshalb",
+        "fehler",
+        "problem",
+        "geht nicht",
+        "funktioniert nicht",
+        "laeuft nicht",
+        "läuft nicht",
+    )
+    DOCKER_HINTS = (
+        "docker",
+        "container",
+        "service",
+        "running",
+        "unhealthy",
+        "restart",
+        "logs",
+        "dienst",
+        "dienste",
+        "status",
+        "laeuft",
+        "läuft",
+        "neustart",
+        "protokoll",
+    )
+    HOME_ASSISTANT_HINTS = (
+        "battery",
+        "solar",
+        "power",
+        "consumption",
+        "sensor",
+        "entity",
+        "home assistant",
+        "akku",
+        "batterie",
+        "batterien",
+        "ladestand",
+        "ladezustand",
+        "speicher",
+        "hausakku",
+        "hausbatterie",
+        "verbrauch",
+        "leistung",
+        "entitaet",
+        "entität",
+    )
+    SECOND_BRAIN_HINTS = (
+        "contract",
+        "contracts",
+        "document",
+        "documents",
+        "facts",
+        "timeline",
+        "paperless",
+        "mail",
+        "vertrag",
+        "vertraege",
+        "verträge",
+        "dokument",
+        "dokumente",
+        "rechnung",
+        "rechnungen",
+        "angebot",
+        "angebote",
+        "e mail",
+        "email",
+        "posteingang",
+        "archiv",
+    )
+    GENERAL_AI_HINTS = (
+        "chatgpt",
+        "allgemeine frage",
+        "ohne secondbrain",
+        "unabhaengig von secondbrain",
+        "wer ist",
+        "wer war",
+        "was bedeutet",
+        "erklaer mir",
+        "erklär mir",
+        "erzaehl mir",
+        "erzähl mir",
+        "wie funktioniert",
+        "warum ist",
+        "wieso ist",
+        "wann war",
+        "wann wurde",
+        "wo ist",
+        "wo liegt",
+    )
     EXPLANATION_PATTERNS = (
         "what is secondbrain",
         "what secondbrain is",
         "how does secondbrain work",
         "what can this system do",
         "what can my system do",
+        "was ist secondbrain",
+        "wie funktioniert secondbrain",
+        "was kannst du",
+        "was kann dieses system",
+        "was kann mein system",
     )
 
     def __init__(
@@ -118,6 +234,13 @@ class QuestionRouter:
                 reason="Matched SecondBrain document knowledge keywords.",
             )
 
+        if self.ai_helper.enabled and any(hint in normalized for hint in self.GENERAL_AI_HINTS):
+            return RoutingDecision(
+                route=RouteType.GENERAL_AI,
+                confidence=0.85,
+                reason="Matched explicit general AI phrasing.",
+            )
+
         if any(hint in normalized for hint in self.TROUBLESHOOTING_HINTS) and any(
             term in normalized for term in ("secondbrain", "mail", "chat", "paperless")
         ):
@@ -177,4 +300,3 @@ class QuestionRouter:
                     if best is None or score > best[0]:
                         best = (score, item)
         return best[1] if best else None
-

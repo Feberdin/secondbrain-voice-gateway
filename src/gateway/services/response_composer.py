@@ -64,7 +64,7 @@ class ResponseComposer:
             parts.append(result.uncertainty)
         if result.status != ResultStatus.OK and result.next_step:
             parts.append(f"Prüfe als Nächstes: {result.next_step}")
-        elif result.next_step and result.source in {SourceType.TROUBLESHOOTING, SourceType.DOCKER}:
+        elif result.next_step and result.source in {SourceType.TROUBLESHOOTING, SourceType.DOCKER, SourceType.GENERAL_AI}:
             parts.append(f"Tipp: {result.next_step}")
 
         speech = self._clean_text(" ".join(parts))
@@ -94,6 +94,7 @@ class ResponseComposer:
     def _source_prefix(source: SourceType) -> str:
         return {
             SourceType.SECOND_BRAIN: "",
+            SourceType.GENERAL_AI: "",
             SourceType.HOME_ASSISTANT: "Home Assistant meldet:",
             SourceType.DOCKER: "Docker meldet:",
             SourceType.TROUBLESHOOTING: "Hinweis:",

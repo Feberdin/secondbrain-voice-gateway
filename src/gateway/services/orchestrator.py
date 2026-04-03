@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from gateway.config import Settings
-from gateway.models.domain import HealthReport, VoiceQueryResult
+from gateway.models.domain import HealthReport, RouteType, VoiceQueryResult
 from gateway.routing.classifier import QuestionRouter
 from gateway.services.response_composer import ResponseComposer
 from gateway.services.troubleshooting import TroubleshootingService
@@ -36,6 +36,7 @@ class VoiceGatewayOrchestrator:
     ) -> None:
         self.settings = settings
         self.router = router
+        self.ai_helper = router.ai_helper
         self.secondbrain_adapter = secondbrain_adapter
         self.home_assistant_adapter = home_assistant_adapter
         self.docker_adapter = docker_adapter
@@ -45,15 +46,17 @@ class VoiceGatewayOrchestrator:
     async def handle_question(self, question: str) -> VoiceQueryResult:
         decision = await self.router.route(question)
 
-        if decision.route.value == "secondbrain_query":
+        if decision.route == RouteType.SECOND_BRAIN:
             result = await self.secondbrain_adapter.ask(question)
-        elif decision.route.value == "home_assistant_state":
+        elif decision.route == RouteType.GENERAL_AI:
+            result = await self.ai_helper.answer_general_question(question)
+        elif decision.route == RouteType.HOME_ASSISTANT_STATE:
             result = await self.home_assistant_adapter.answer_state_question(question, decision.matched_key)
-        elif decision.route.value == "home_assistant_action":
+        elif decision.route == RouteType.HOME_ASSISTANT_ACTION:
             result = await self.home_assistant_adapter.execute_action(question, decision.matched_key)
-        elif decision.route.value == "docker_status":
+        elif decision.route == RouteType.DOCKER_STATUS:
             result = await self.docker_adapter.answer_status_question(question, decision.matched_key)
-        elif decision.route.value == "troubleshooting":
+        elif decision.route == RouteType.TROUBLESHOOTING:
             result = await self.troubleshooting_service.answer(question, decision.matched_key)
         else:
             result = self.troubleshooting_service.explain_system()

@@ -103,7 +103,7 @@ Why it is structured this way:
 - `LaunchRequest`, `IntentRequest`, and `SessionEndedRequest` support
 - `AskSystemIntent` with free-form `question` slot
 - deterministic routing for SecondBrain, Home Assistant, Docker, explanation, and troubleshooting
-- optional OpenAI-compatible AI fallback for ambiguous routing or answer compression
+- optional OpenAI-compatible AI fallback for ambiguous routing, direct general questions, or answer compression
 - optional standalone OAuth2 account-linking server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md)
 - structured JSON logs with request IDs
 - `/health`, `/ready`, and `/debug/snapshot`
@@ -236,6 +236,8 @@ Sample utterances handled by the model:
 - “Alexa, ask Second Brain which contracts expire in the next thirty days.”
 - “Alexa, ask Second Brain how full my EcoFlow batteries are.”
 - “Alexa, ask Second Brain if Jellyfin is running.”
+- “Alexa, ask Second Brain who Ada Lovelace was.”
+- “Alexa, ask Second Brain to ask ChatGPT why the sky looks blue.”
 - “Alexa, ask Second Brain why mail import is not working.”
 - “Alexa, ask Second Brain how to debug SecondBrain.”
 - “Alexa, ask Second Brain to turn on EV charging.”
