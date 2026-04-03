@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import posixpath
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from time import monotonic
@@ -102,19 +103,25 @@ class AlexaRequestVerifier:
             raise ValueError("Alexa request timestamp is outside the allowed tolerance window.")
 
     async def _verify_signature(self, body_bytes: bytes, headers: dict[str, str]) -> None:
-        signature_b64 = headers.get("signature")
+        signature_b64 = headers.get("signature-256")
+        signature_hash = hashes.SHA256()
+        signature_header_name = "Signature-256"
+        if not signature_b64:
+            signature_b64 = headers.get("signature")
+            signature_hash = hashes.SHA1()
+            signature_header_name = "Signature"
         cert_url = headers.get("signaturecertchainurl")
         if not signature_b64 or not cert_url:
             raise ValueError("Alexa signature headers are missing.")
 
-        logger.debug("Fetching Alexa signing certificate from %s", cert_url)
+        logger.debug("Fetching Alexa signing certificate from %s using %s", cert_url, signature_header_name)
         cert_pem = await self._fetch_certificate(cert_url)
         certificate = x509.load_pem_x509_certificate(cert_pem)
         self._validate_certificate_metadata(cert_url, certificate)
 
         signature = base64.b64decode(signature_b64)
         public_key = certificate.public_key()
-        public_key.verify(signature, body_bytes, padding.PKCS1v15(), hashes.SHA1())
+        public_key.verify(signature, body_bytes, padding.PKCS1v15(), signature_hash)
 
         # Example I/O: {"request": {"timestamp": "..."}}
         # We parse once more here because Alexa signs the raw body, but timestamp validation needs the parsed value.
@@ -142,7 +149,13 @@ class AlexaRequestVerifier:
             raise ValueError("Alexa certificate URL must use HTTPS.")
         if parsed.hostname != "s3.amazonaws.com":
             raise ValueError("Alexa certificate URL must point to s3.amazonaws.com.")
-        if not parsed.path.startswith("/echo.api/"):
+        if parsed.port not in (None, 443):
+            raise ValueError("Alexa certificate URL must use port 443.")
+        if parsed.query or parsed.fragment:
+            raise ValueError("Alexa certificate URL must not include a query string or fragment.")
+
+        normalized_path = posixpath.normpath(parsed.path)
+        if not normalized_path.startswith("/echo.api/"):
             raise ValueError("Alexa certificate URL path must start with /echo.api/.")
 
         san_extension = certificate.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
