@@ -8,6 +8,7 @@ Debugging: Check gateway logs, SecondBrain `/health`, and the configured bearer 
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -16,6 +17,12 @@ from gateway.config import Settings
 from gateway.models.domain import EvidenceSnippet, HealthReport, ResultStatus, SourceType, StructuredAnswer
 
 logger = logging.getLogger(__name__)
+
+RETRIEVAL_DEBUG_PATTERNS = (
+    re.compile(r"found\s+\d+\s+structured\s+matches", re.IGNORECASE),
+    re.compile(r"\d+\s+semantic\s+context\s+matches", re.IGNORECASE),
+    re.compile(r"adaptive\s+retrieval\s+limit", re.IGNORECASE),
+)
 
 
 class SecondBrainAdapter:
@@ -236,7 +243,9 @@ class SecondBrainAdapter:
                 raw={"raw_type": str(type(raw))},
             )
 
-        answer = self._first_text(raw, "answer_preview", "answer", "summary", "result", "text", "message")
+        answer = self._sanitize_voice_answer(
+            self._first_text(raw, "answer_preview", "answer", "summary", "result", "text", "message")
+        )
         evidence = self._collect_evidence(raw)
 
         if not answer:
@@ -274,7 +283,7 @@ class SecondBrainAdapter:
             status=ResultStatus.OK,
             source=SourceType.SECOND_BRAIN,
             answer=answer.strip(),
-            details=self._first_text(raw, "details", "debug", "context"),
+            details=self._sanitize_voice_answer(self._first_text(raw, "details", "debug", "context")),
             next_step="Frage nach mehr Details, wenn du mehr wissen möchtest.",
             evidence=evidence,
             raw=raw,
@@ -287,6 +296,35 @@ class SecondBrainAdapter:
             if isinstance(value, str) and value.strip():
                 return value
         return None
+
+    @staticmethod
+    def _sanitize_voice_answer(text: str | None) -> str | None:
+        """
+        Why this exists: Some SecondBrain deployments return retrieval diagnostics such as match counters
+        instead of a human-friendly spoken answer.
+        What happens here: We remove those diagnostics early so the adapter can fall back to structured
+        document summaries when needed.
+        Example input/output:
+        - Input: "Found 5 structured matches... limit 5. Zwei Vertraege enden bald."
+        - Output: "Zwei Vertraege enden bald."
+        """
+
+        if not text or not text.strip():
+            return None
+
+        normalized = re.sub(r"\s+", " ", text).strip()
+        fragments = [fragment.strip() for fragment in re.split(r"(?<=[.!?])\s+", normalized) if fragment.strip()]
+        if not fragments:
+            fragments = [normalized]
+
+        filtered_fragments = [
+            fragment
+            for fragment in fragments
+            if not any(pattern.search(fragment) for pattern in RETRIEVAL_DEBUG_PATTERNS)
+        ]
+
+        cleaned = " ".join(filtered_fragments).strip()
+        return cleaned or None
 
     @staticmethod
     def _collect_evidence(payload: dict[str, Any]) -> list[EvidenceSnippet]:

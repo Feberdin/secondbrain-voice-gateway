@@ -51,3 +51,22 @@ async def test_compose_splits_long_answer_into_continuation_chunks() -> None:
     assert composed.spoken_text.endswith("Soll ich weiterlesen?")
     assert composed.reprompt_text == "Wenn du mehr hören möchtest, sag einfach ja. Wenn nicht, sag nein."
     assert composed.continuation_chunks
+
+
+@pytest.mark.asyncio
+async def test_compose_filters_retrieval_debug_sentences_from_spoken_text() -> None:
+    composer = ResponseComposer(Settings(_env_file=None), OptionalAiHelper(Settings(_env_file=None)))
+
+    result = StructuredAnswer(
+        status=ResultStatus.OK,
+        source=SourceType.SECOND_BRAIN,
+        answer=(
+            "Found 5 structured matches and 5 semantic context matches with adaptive retrieval limit 5. "
+            "Jellyfin laeuft gerade ohne bekannten Fehler."
+        ),
+    )
+
+    composed = await composer.compose(result)
+
+    assert "structured matches" not in composed.spoken_text.lower()
+    assert composed.spoken_text == "Jellyfin laeuft gerade ohne bekannten Fehler."

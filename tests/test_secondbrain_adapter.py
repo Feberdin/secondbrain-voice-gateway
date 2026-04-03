@@ -129,3 +129,55 @@ async def test_secondbrain_adapter_retries_with_hinted_query_field(patch_async_c
     assert len(calls) == 2
     assert calls[0] == {"question": "which contracts expire soon"}
     assert calls[1] == {"query": "which contracts expire soon"}
+
+
+@pytest.mark.asyncio
+async def test_secondbrain_adapter_ignores_retrieval_debug_answer_and_falls_back_to_semantic_results(
+    patch_async_client,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={
+                "answer_preview": "Found 5 structured matches and 5 semantic context matches with adaptive retrieval limit 5.",
+                "semantic_results": [
+                    {
+                        "document_title": "ERGO Hausratversicherung",
+                        "paperless_note_summary": "Hausratversicherung von ERGO mit Leistungen zu Sturm, Hagel und Diebstahl.",
+                    }
+                ],
+            },
+        )
+
+    patch_async_client(secondbrain_module, handler)
+    adapter = SecondBrainAdapter(Settings(_env_file=None))
+
+    result = await adapter.ask("finde meine hausratversicherung")
+
+    assert result.status == ResultStatus.OK
+    assert "ERGO Hausratversicherung" in result.answer
+    assert "structured matches" not in result.answer.lower()
+
+
+@pytest.mark.asyncio
+async def test_secondbrain_adapter_removes_retrieval_debug_sentence_but_keeps_real_answer(
+    patch_async_client,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={
+                "answer_preview": (
+                    "Found 5 structured matches and 5 semantic context matches with adaptive retrieval limit 5. "
+                    "Zwei Vertraege enden in den naechsten dreissig Tagen."
+                )
+            },
+        )
+
+    patch_async_client(secondbrain_module, handler)
+    adapter = SecondBrainAdapter(Settings(_env_file=None))
+
+    result = await adapter.ask("welche vertraege enden bald")
+
+    assert result.status == ResultStatus.OK
+    assert result.answer == "Zwei Vertraege enden in den naechsten dreissig Tagen."

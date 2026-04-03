@@ -14,6 +14,12 @@ from gateway.config import Settings
 from gateway.models.domain import ResultStatus, SourceType, StructuredAnswer
 from gateway.services.ai_helper import OptionalAiHelper
 
+RETRIEVAL_DEBUG_PATTERNS = (
+    re.compile(r"found\s+\d+\s+structured\s+matches", re.IGNORECASE),
+    re.compile(r"\d+\s+semantic\s+context\s+matches", re.IGNORECASE),
+    re.compile(r"adaptive\s+retrieval\s+limit", re.IGNORECASE),
+)
+
 
 @dataclass(slots=True)
 class ComposedSpeech:
@@ -106,8 +112,34 @@ class ResponseComposer:
 
         cleaned = text.replace("\n", " ").replace("_", " ")
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        cleaned = ResponseComposer._remove_retrieval_debug_sentences(cleaned)
         cleaned = cleaned.replace(" .", ".").replace(" ,", ",")
         return cleaned
+
+    @staticmethod
+    def _remove_retrieval_debug_sentences(text: str) -> str:
+        """
+        Why this exists: Defensive cleanup keeps Alexa from reading upstream retrieval diagnostics when a backend
+        answer accidentally leaks technical context into the speech layer.
+        What happens here: We remove sentence fragments that only describe retrieval counts and limits.
+        Example input/output:
+        - Input: "Found 5 structured matches... limit 5. Jellyfin laeuft."
+        - Output: "Jellyfin laeuft."
+        """
+
+        if not text:
+            return text
+
+        fragments = [fragment.strip() for fragment in re.split(r"(?<=[.!?])\s+", text) if fragment.strip()]
+        if not fragments:
+            fragments = [text.strip()]
+
+        filtered_fragments = [
+            fragment
+            for fragment in fragments
+            if not any(pattern.search(fragment) for pattern in RETRIEVAL_DEBUG_PATTERNS)
+        ]
+        return " ".join(filtered_fragments).strip()
 
     def _chunk_text(self, text: str) -> list[str]:
         """Split long speech into Alexa-friendly chunks that can be continued with a follow-up question."""
