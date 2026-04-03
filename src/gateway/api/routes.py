@@ -114,6 +114,7 @@ async def alexa_skill(request: Request) -> JSONResponse:
                 "Ask about contracts, Home Assistant sensors, Docker services, or a safe action."
             ),
             reprompt_text="Try asking how full your EcoFlow batteries are or whether Jellyfin is running.",
+            should_end_session=False,
         )
         return JSONResponse(response.model_dump())
 
@@ -132,6 +133,7 @@ async def alexa_skill(request: Request) -> JSONResponse:
                 "or a safe action like turning on EV charging."
             ),
             reprompt_text="For example, ask which contracts expire in the next thirty days.",
+            should_end_session=False,
         )
         return JSONResponse(response.model_dump())
     if intent_name in {"AMAZON.StopIntent", "AMAZON.CancelIntent"}:
@@ -141,6 +143,7 @@ async def alexa_skill(request: Request) -> JSONResponse:
         response = _build_alexa_response(
             speech_text="I did not understand that request. Try a question about SecondBrain, Home Assistant, or Docker.",
             reprompt_text="For example, ask if Jellyfin is running.",
+            should_end_session=False,
         )
         return JSONResponse(response.model_dump())
 
@@ -178,6 +181,9 @@ def _build_alexa_response(
     should_end_session: bool = True,
 ) -> AlexaResponseEnvelope:
     """Build one Alexa-compatible response envelope from plain text inputs."""
+    if reprompt_text and should_end_session:
+        logger.warning("Reprompt text was provided with should_end_session=true. Keeping the Alexa session open instead.")
+        should_end_session = False
     response = AlexaResponseBody(
         outputSpeech=AlexaOutputSpeech(text=speech_text),
         card=AlexaCard(

@@ -39,6 +39,8 @@ def test_alexa_launch_request_returns_prompt() -> None:
 
     assert response.status_code == 200
     assert "SecondBrain voice gateway is ready" in response.json()["response"]["outputSpeech"]["text"]
+    assert response.json()["response"]["shouldEndSession"] is False
+    assert "reprompt" in response.json()["response"]
 
 
 def test_alexa_launch_request_rejects_disallowed_user() -> None:
@@ -117,3 +119,26 @@ def test_alexa_intent_request_returns_spoken_answer() -> None:
     body = response.json()
     assert body["response"]["outputSpeech"]["text"] == "SecondBrain is your document knowledge layer."
     assert body["response"]["reprompt"]["outputSpeech"]["text"] == "You can ask a follow-up question."
+
+
+def test_alexa_fallback_keeps_session_open() -> None:
+    app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
+    client = TestClient(app)
+
+    payload = {
+        "version": "1.0",
+        "session": {"new": False, "sessionId": "SessionId.fallback", "application": {"applicationId": "amzn1.ask.skill.test"}},
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.fallback",
+            "timestamp": now_iso(),
+            "locale": "en-US",
+            "intent": {"name": "AMAZON.FallbackIntent", "slots": {}},
+        },
+    }
+
+    response = client.post("/alexa/skill", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["response"]["shouldEndSession"] is False
+    assert "reprompt" in response.json()["response"]
