@@ -26,6 +26,7 @@ from gateway.config import (
 from gateway.routing.classifier import QuestionRouter
 from gateway.security.network import enforce_client_allowlist
 from gateway.services.ai_helper import OptionalAiHelper
+from gateway.services.alexa_session_state import AlexaSessionStateStore
 from gateway.services.orchestrator import VoiceGatewayOrchestrator
 from gateway.services.request_history import RequestHistoryRecorder
 from gateway.services.response_composer import ResponseComposer
@@ -89,6 +90,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.alexa_verifier = AlexaRequestVerifier(resolved_settings)
     app.state.orchestrator = orchestrator
     app.state.request_history = request_history_recorder
+    app.state.alexa_session_state = AlexaSessionStateStore()
 
     @app.middleware("http")
     async def request_context_middleware(request: Request, call_next):  # type: ignore[override]

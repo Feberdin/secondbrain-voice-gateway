@@ -109,6 +109,7 @@ Why it is structured this way:
 - dedicated latest-mail shortcut for phrases like “lies mir den Inhalt meiner letzten Mail vor”
 - optional OpenAI-compatible AI fallback for ambiguous routing, direct general questions, or answer compression
 - optional standalone OAuth2 account-linking server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md)
+- optional Alexa feedback prompt after completed answers
 - structured JSON logs with request IDs
 - optional daily JSONL request history for later routing and prompt tuning
 - `/health`, `/ready`, and `/debug/snapshot`
@@ -148,6 +149,7 @@ Set at least:
 - `DOCKER_BASE_URL`
 - `ALEXA_VERIFY_SIGNATURE`
 - `REQUEST_HISTORY_ENABLED`
+- `ALEXA_FEEDBACK_ENABLED`
 
 ### 3. Adapt YAML allowlists
 
@@ -201,6 +203,7 @@ Important environment variables:
 - `ALEXA_APPLICATION_IDS`: comma-separated list of allowed Alexa Skill IDs
 - `ALEXA_ALLOWED_USER_IDS`: optional comma-separated list of allowed Alexa account user IDs for private use
 - `ALEXA_VERIFY_SIGNATURE`: keep `true` in production
+- `ALEXA_FEEDBACK_ENABLED`: ask after completed answers whether the answer was helpful
 - `SECOND_BRAIN_BASE_URL`: base URL of the existing SecondBrain API
 - `SECOND_BRAIN_QUERY_FIELD_NAME`: JSON field used for `POST /query`
 - `HOME_ASSISTANT_BASE_URL`: Home Assistant base URL
@@ -211,6 +214,7 @@ Important environment variables:
 - `REQUEST_HISTORY_ENABLED`: store structured Alexa request history for later improvements
 - `REQUEST_HISTORY_DIR`: writable directory for daily `.jsonl` history files
 - `REQUEST_HISTORY_INCLUDE_ANSWERS`: include spoken answers in the stored history
+- when `ALEXA_FEEDBACK_ENABLED=true`, the request history also stores structured positive/negative feedback entries linked to the original answered request
 - `LOG_LEVEL`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`
 
 Secrets:
@@ -226,6 +230,7 @@ Why this matters:
 
 - `AskSystemIntent` and free-form phrases like “Alexa, ask Second Brain ...” are Custom Skill flows.
 - Add `AMAZON.YesIntent` and `AMAZON.NoIntent` so Alexa can continue longer answers in smaller spoken parts.
+- The gateway also uses `AMAZON.YesIntent` and `AMAZON.NoIntent` for the optional feedback prompt after an answer is complete.
 - Smart Home skills use discovery and directive payloads instead of the intent model implemented by this gateway.
 - Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
 
@@ -400,6 +405,7 @@ Logging:
 - request correlation ID in every line
 - no full secret values in debug snapshot
 - optional daily JSONL request history under `REQUEST_HISTORY_DIR`
+- optional structured feedback events in request history when `ALEXA_FEEDBACK_ENABLED=true`
 
 Endpoints:
 

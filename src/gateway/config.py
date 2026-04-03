@@ -97,6 +97,7 @@ class Settings(BaseSettings):
     alexa_signature_tolerance_seconds: int = 150
     alexa_cert_cache_ttl_seconds: int = 3600
     alexa_enable_reprompt: bool = True
+    alexa_feedback_enabled: bool = False
 
     secondbrain_enabled: bool = Field(True, validation_alias="SECOND_BRAIN_ENABLED")
     secondbrain_base_url: str = Field("http://secondbrain:8000", validation_alias="SECOND_BRAIN_BASE_URL")
@@ -185,6 +186,7 @@ class Settings(BaseSettings):
             "alexa_application_ids": self.alexa_application_ids,
             "alexa_allowed_user_ids": self.alexa_allowed_user_ids,
             "alexa_verify_signature": self.alexa_verify_signature,
+            "alexa_feedback_enabled": self.alexa_feedback_enabled,
             "secondbrain_enabled": self.secondbrain_enabled,
             "secondbrain_base_url": self.secondbrain_base_url,
             "secondbrain_query_path": self.secondbrain_query_path,
