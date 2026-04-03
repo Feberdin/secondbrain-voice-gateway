@@ -44,7 +44,7 @@ Debugging: If the container does not start, first verify the local image tag, th
   <DonateLink />
   <Requires>secondbrain-docker-proxy</Requires>
 
-  <Config Name="Web UI Port" Target="8000" Default="8000" Mode="tcp" Description="HTTP port for the gateway API and local testing endpoints." Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+  <Config Name="Web UI Port" Target="8000" Default="8001" Mode="tcp" Description="HTTP port for the gateway API and local testing endpoints. Host port 8001 avoids conflict with Paperless on this system." Type="Port" Display="always" Required="true" Mask="false">8001</Config>
 
   <Config Name="Configs Directory" Target="/app/configs" Default="/mnt/user/appdata/secondbrain-voice-gateway/configs" Mode="rw" Description="Directory with YAML alias and troubleshooting configuration files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/secondbrain-voice-gateway/configs</Config>
 
@@ -53,7 +53,7 @@ Debugging: If the container does not start, first verify the local image tag, th
   <Config Name="Request Timeout" Target="REQUEST_TIMEOUT_SECONDS" Default="8" Mode="" Description="Timeout in seconds for upstream requests." Type="Variable" Display="advanced" Required="false" Mask="false">8</Config>
   <Config Name="Debug Endpoints" Target="DEBUG_ENDPOINTS_ENABLED" Default="false" Mode="" Description="Enable /debug/snapshot only in trusted environments." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
 
-  <Config Name="Alexa Skill IDs" Target="ALEXA_APPLICATION_IDS" Default="amzn1.ask.skill.change-me" Mode="" Description="Comma-separated allowed Alexa Skill IDs." Type="Variable" Display="always" Required="true" Mask="false">amzn1.ask.skill.change-me</Config>
+  <Config Name="Alexa Skill IDs" Target="ALEXA_APPLICATION_IDS" Default="amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0" Mode="" Description="Comma-separated allowed Alexa Skill IDs. This default matches the current SecondBrain Voice skill." Type="Variable" Display="always" Required="true" Mask="false">amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0</Config>
   <Config Name="Verify Alexa Signature" Target="ALEXA_VERIFY_SIGNATURE" Default="true" Mode="" Description="Keep true in production. Set false only for controlled local testing." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
   <Config Name="Alexa Reprompt" Target="ALEXA_ENABLE_REPROMPT" Default="true" Mode="" Description="Enable Alexa reprompts for follow-up questions." Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
 
@@ -63,7 +63,7 @@ Debugging: If the container does not start, first verify the local image tag, th
   <Config Name="SecondBrain Query Field" Target="SECOND_BRAIN_QUERY_FIELD_NAME" Default="question" Mode="" Description="JSON field name used for SecondBrain POST /query." Type="Variable" Display="advanced" Required="false" Mask="false">question</Config>
   <Config Name="SecondBrain Bearer Token" Target="SECOND_BRAIN_BEARER_TOKEN" Default="" Mode="" Description="Bearer token for the SecondBrain API. Enter it directly here if SecondBrain auth is enabled." Type="Variable" Display="always" Required="false" Mask="true"></Config>
 
-  <Config Name="Home Assistant Base URL" Target="HOME_ASSISTANT_BASE_URL" Default="http://homeassistant:8123" Mode="" Description="Base URL of Home Assistant." Type="Variable" Display="always" Required="true" Mask="false">http://homeassistant:8123</Config>
+  <Config Name="Home Assistant Base URL" Target="HOME_ASSISTANT_BASE_URL" Default="http://192.168.57.5:8123" Mode="" Description="Base URL of Home Assistant. This default matches the current Home Assistant host in this environment." Type="Variable" Display="always" Required="true" Mask="false">http://192.168.57.5:8123</Config>
   <Config Name="Home Assistant Token" Target="HOME_ASSISTANT_TOKEN" Default="" Mode="" Description="Long-lived Home Assistant token entered directly in the template." Type="Variable" Display="always" Required="false" Mask="true"></Config>
   <Config Name="Home Assistant Alias Config" Target="HOME_ASSISTANT_ALIAS_CONFIG_PATH" Default="/app/configs/home_assistant_aliases.yml" Mode="" Description="YAML file containing entity aliases and allowlisted actions." Type="Variable" Display="advanced" Required="true" Mask="false">/app/configs/home_assistant_aliases.yml</Config>
 
@@ -79,4 +79,3 @@ Debugging: If the container does not start, first verify the local image tag, th
   <Config Name="AI Model" Target="AI_MODEL" Default="gpt-4o-mini" Mode="" Description="OpenAI model for routing fallback and answer compression. GPT-4o mini is a fast, affordable model for focused tasks." Type="Variable" Display="advanced" Required="false" Mask="false">gpt-4o-mini</Config>
   <Config Name="OpenAI API Key" Target="AI_API_KEY" Default="" Mode="" Description="OpenAI API key entered directly in the template when AI mode is enabled." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
 </Container>
-

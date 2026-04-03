@@ -2,13 +2,29 @@
 
 This document explains how to connect the self-hosted gateway to an Amazon Alexa Custom Skill.
 
+## Important Skill Type Note
+
+Use a `Custom Skill`, not a `Smart Home` skill.
+
+Why:
+
+- This project expects `LaunchRequest`, `IntentRequest`, and `AskSystemIntent`.
+- The spoken pattern “Alexa, ask Second Brain ...” is a Custom Skill pattern.
+- Smart Home skills use Alexa discovery and directive payloads instead of the interaction model in this repository.
+- If you want account linking, add it to the Custom Skill with the OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
+
 ## Skill Setup
 
 1. Open the Alexa Developer Console and create a new custom skill.
 2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
 3. Set the invocation name to `second brain` or change it to a name you prefer such as `my system`.
-4. Point the HTTPS endpoint to `https://your-public-hostname/alexa/skill`.
+4. Point the HTTPS endpoint to `https://secondbrain-voice.feberdin.de/alexa/skill`.
 5. Copy the generated Skill ID into `ALEXA_APPLICATION_IDS` in `.env`.
+
+Current environment values:
+
+- Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
+- HTTPS endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
 
 ## Endpoint Requirements
 
@@ -24,5 +40,7 @@ This document explains how to connect the self-hosted gateway to an Amazon Alexa
   - “Alexa, ask Second Brain what SecondBrain is.”
   - “Alexa, ask Second Brain which contracts expire in the next thirty days.”
   - “Alexa, ask Second Brain if Jellyfin is running.”
-- Account linking is optional. Add it only if you want user-specific personalization or per-user authorization in the future.
-
+- Account linking is optional for the gateway itself.
+- If you enable it in Alexa, use these OAuth endpoints:
+  - `https://secondbrain-voice.feberdin.de/oauth/authorize`
+  - `https://secondbrain-voice.feberdin.de/oauth/token`

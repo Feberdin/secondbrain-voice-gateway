@@ -19,6 +19,8 @@ That split keeps the voice gateway away from the raw Docker socket.
 - You either clone the repository on Unraid or copy it there from another machine.
 - Your existing SecondBrain containers already run on `secondbrain-net`.
 - Your current SecondBrain API is reachable on `http://192.168.57.10:8080`.
+- Your Home Assistant is reachable on `http://192.168.57.5:8123`.
+- Paperless already uses host port `8000`, so the gateway should use host port `8001`.
 
 ## Template Files
 
@@ -103,8 +105,19 @@ docker build -t secondbrain-voice-gateway:local -f docker/Dockerfile .
 Recommended values for your current environment:
 
 - Network: `secondbrain-net`
+- Web UI host port: `8001`
+- `ALEXA_APPLICATION_IDS=amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
 - `SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080`
+- `HOME_ASSISTANT_BASE_URL=http://192.168.57.5:8123`
 - `DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375`
+- Alexa HTTPS endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
+- OAuth authorization endpoint: `https://secondbrain-voice.feberdin.de/oauth/authorize`
+- OAuth token endpoint: `https://secondbrain-voice.feberdin.de/oauth/token`
+
+Important Alexa note:
+
+- Create a `Custom Skill`.
+- Do not use a `Smart Home` skill for the current gateway, because this project is built around `AskSystemIntent` and a free-form question slot.
 
 If you prefer internal Docker DNS instead of the host IP, you can also try:
 
@@ -118,8 +131,8 @@ After both containers are running:
 
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Networks}}' | grep secondbrain
-curl http://UNRAID-IP:8000/health
-curl http://UNRAID-IP:8000/ready
+curl http://UNRAID-IP:8001/health
+curl http://UNRAID-IP:8001/ready
 ```
 
 ## Debugging
@@ -156,4 +169,3 @@ Set these in the Unraid template:
 - `AI_API_KEY=...`
 
 I chose these defaults because OpenAI's API reference documents Chat Completions under the `/v1/chat/completions` path, and the current OpenAI model page describes `gpt-4o-mini` as a fast, affordable model for focused tasks.
-

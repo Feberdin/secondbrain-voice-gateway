@@ -2,6 +2,13 @@
 
 Minimal OAuth2 authorization server for Alexa Skill Account Linking using the Authorization Code Grant with PKCE.
 
+Important scope note:
+
+- This OAuth server works for Alexa account linking.
+- The current `secondbrain-voice-gateway` uses an Alexa `Custom Skill`.
+- If you want phrases like “Alexa, ask Second Brain ...”, keep using a Custom Skill and add account linking there.
+- A `Smart Home` skill would need a different directive-based backend than the one in this repository.
+
 ## Folder Structure
 
 ```text
@@ -150,4 +157,3 @@ curl -X POST https://secondbrain-voice.feberdin.de/oauth/token \
 - Access tokens and refresh tokens are signed JWTs.
 - Passwords are stored with bcrypt.
 - The service rejects non-HTTPS requests when `REQUIRE_HTTPS=true`.
-

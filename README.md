@@ -209,11 +209,24 @@ Secrets:
 
 ## Alexa Custom Skill Setup
 
+Use a `Custom Skill` for this project, not a `Smart Home` skill.
+
+Why this matters:
+
+- `AskSystemIntent` and free-form phrases like “Alexa, ask Second Brain ...” are Custom Skill flows.
+- Smart Home skills use discovery and directive payloads instead of the intent model implemented by this gateway.
+- Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
+
 1. Create a custom skill in the Alexa Developer Console.
 2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
-3. Set the HTTPS endpoint to `https://your-public-host/alexa/skill`.
+3. Set the HTTPS endpoint to `https://secondbrain-voice.feberdin.de/alexa/skill`.
 4. Copy the skill ID to `ALEXA_APPLICATION_IDS`.
 5. Build and test the skill in the Alexa console.
+
+Current production values for this environment:
+
+- Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
+- Endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
 
 Sample utterances handled by the model:
 
@@ -227,8 +240,11 @@ Sample utterances handled by the model:
 
 Account linking note:
 
-- The current MVP does not require account linking.
-- Add account linking later if you want per-user authorization or personalized responses.
+- The gateway works without account linking.
+- If you want account linking now, use the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
+- For this environment the OAuth endpoints are:
+  - `https://secondbrain-voice.feberdin.de/oauth/authorize`
+  - `https://secondbrain-voice.feberdin.de/oauth/token`
 
 ## Home Assistant Integration Approach
 
