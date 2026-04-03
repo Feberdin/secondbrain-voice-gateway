@@ -335,6 +335,155 @@ def test_alexa_feedback_prompt_is_appended_when_enabled() -> None:
     assert body["sessionAttributes"]["follow_up_type"] == "feedback"
 
 
+def test_alexa_help_during_feedback_keeps_feedback_context_open() -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            alexa_verify_signature=False,
+            alexa_application_ids=["amzn1.ask.skill.test"],
+            alexa_feedback_enabled=True,
+        )
+    )
+
+    async def fake_handle_question(question: str) -> VoiceQueryResult:
+        return VoiceQueryResult(
+            question=question,
+            routing=RoutingDecision(route=RouteType.GENERAL_AI, reason="test"),
+            result=StructuredAnswer(
+                status=ResultStatus.OK,
+                source=SourceType.GENERAL_AI,
+                answer="Ada Lovelace war eine Pionierin der Informatik.",
+            ),
+            spoken_text="Ada Lovelace war eine Pionierin der Informatik.",
+            reprompt_text="Du kannst direkt eine neue Frage stellen.",
+        )
+
+    app.state.orchestrator.handle_question = fake_handle_question
+    client = TestClient(app)
+
+    question_payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.feedback.help",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.feedback.help.question",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {
+                "name": "AskSystemIntent",
+                "slots": {
+                    "question": {"name": "question", "value": "frage chatgpt wer war ada lovelace"}
+                },
+            },
+        },
+    }
+    help_payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.feedback.help",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.feedback.help.help",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {"name": "AMAZON.HelpIntent", "slots": {}},
+        },
+    }
+
+    assert client.post("/alexa/skill", json=question_payload).status_code == 200
+    help_response = client.post("/alexa/skill", json=help_payload)
+
+    assert help_response.status_code == 200
+    body = help_response.json()
+    assert "Ich warte gerade auf dein Feedback." in body["response"]["outputSpeech"]["text"]
+    assert body["sessionAttributes"]["follow_up_type"] == "feedback"
+
+
+def test_alexa_stop_during_feedback_records_negative_feedback(tmp_path) -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            alexa_verify_signature=False,
+            alexa_application_ids=["amzn1.ask.skill.test"],
+            alexa_feedback_enabled=True,
+            request_history_enabled=True,
+            request_history_dir=tmp_path,
+        )
+    )
+
+    async def fake_handle_question(question: str) -> VoiceQueryResult:
+        return VoiceQueryResult(
+            question=question,
+            routing=RoutingDecision(route=RouteType.GENERAL_AI, reason="test"),
+            result=StructuredAnswer(
+                status=ResultStatus.OK,
+                source=SourceType.GENERAL_AI,
+                answer="Ada Lovelace war eine Pionierin der Informatik.",
+            ),
+            spoken_text="Ada Lovelace war eine Pionierin der Informatik.",
+            reprompt_text="Du kannst direkt eine neue Frage stellen.",
+        )
+
+    app.state.orchestrator.handle_question = fake_handle_question
+    client = TestClient(app)
+
+    question_payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.feedback.stop",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "user": {"userId": "amzn1.ask.account.user"},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.feedback.stop.question",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {
+                "name": "AskSystemIntent",
+                "slots": {
+                    "question": {"name": "question", "value": "frage chatgpt wer war ada lovelace"}
+                },
+            },
+        },
+    }
+    stop_payload = {
+        "version": "1.0",
+        "session": {
+            "new": False,
+            "sessionId": "SessionId.feedback.stop",
+            "application": {"applicationId": "amzn1.ask.skill.test"},
+            "user": {"userId": "amzn1.ask.account.user"},
+        },
+        "request": {
+            "type": "IntentRequest",
+            "requestId": "EdwRequestId.feedback.stop.stop",
+            "timestamp": now_iso(),
+            "locale": "de-DE",
+            "intent": {"name": "AMAZON.StopIntent", "slots": {}},
+        },
+    }
+
+    assert client.post("/alexa/skill", json=question_payload).status_code == 200
+    stop_response = client.post("/alexa/skill", json=stop_payload)
+
+    assert stop_response.status_code == 200
+    assert stop_response.json()["response"]["outputSpeech"]["text"] == "Danke für dein Feedback. Bis bald."
+
+    history_files = list(tmp_path.glob("*.jsonl"))
+    entries = [json.loads(line) for line in history_files[0].read_text(encoding="utf-8").strip().splitlines()]
+    assert entries[-1]["event_type"] == "alexa_feedback_stop"
+    assert entries[-1]["feedback"]["helpful"] is False
+
+
 def test_alexa_text_continue_reads_continuation_chunk() -> None:
     app = create_app(Settings(_env_file=None, alexa_verify_signature=False, alexa_application_ids=["amzn1.ask.skill.test"]))
     client = TestClient(app)

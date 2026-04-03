@@ -205,6 +205,50 @@ async def alexa_skill(request: Request) -> JSONResponse:
     feedback_context = _feedback_context(conversation_state)
 
     if intent_name == "AMAZON.HelpIntent":
+        if follow_up_type == FOLLOW_UP_CONTINUATION and continuation_chunks:
+            session_attributes = await _persist_conversation_state(request, envelope, conversation_state)
+            response = _build_alexa_response(
+                speech_text=(
+                    "Ich habe noch mehr Text vorbereitet. Sag ja oder weiter, wenn ich weiterlesen soll. "
+                    "Sag nein oder stopp, wenn ich anhalten soll."
+                ),
+                reprompt_text=CONTINUATION_REPROMPT,
+                should_end_session=False,
+                session_attributes=session_attributes,
+            )
+            await _record_alexa_event(
+                request,
+                envelope=envelope,
+                event_type="alexa_help_follow_up_continuation",
+                speech_text=response.response.outputSpeech.text,
+                reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
+                should_end_session=response.response.shouldEndSession,
+                verification_passed=True,
+            )
+            return JSONResponse(response.model_dump())
+
+        if follow_up_type == FOLLOW_UP_FEEDBACK and feedback_context:
+            session_attributes = await _persist_conversation_state(request, envelope, conversation_state)
+            response = _build_alexa_response(
+                speech_text=(
+                    "Ich warte gerade auf dein Feedback. Sag ja, wenn die Antwort hilfreich war. "
+                    "Sag nein oder stopp, wenn sie nicht hilfreich war."
+                ),
+                reprompt_text=FEEDBACK_REPROMPT,
+                should_end_session=False,
+                session_attributes=session_attributes,
+            )
+            await _record_alexa_event(
+                request,
+                envelope=envelope,
+                event_type="alexa_help_follow_up_feedback",
+                speech_text=response.response.outputSpeech.text,
+                reprompt_text=response.response.reprompt.outputSpeech.text if response.response.reprompt else None,
+                should_end_session=response.response.shouldEndSession,
+                verification_passed=True,
+            )
+            return JSONResponse(response.model_dump())
+
         await _clear_conversation_state(request, envelope)
         response = _build_alexa_response(
             speech_text=(
@@ -321,6 +365,41 @@ async def alexa_skill(request: Request) -> JSONResponse:
         )
         return JSONResponse(response.model_dump())
     if intent_name in {"AMAZON.StopIntent", "AMAZON.CancelIntent"}:
+        if follow_up_type == FOLLOW_UP_FEEDBACK and feedback_context:
+            await _clear_conversation_state(request, envelope)
+            response = _build_alexa_response(
+                "Danke für dein Feedback. Bis bald.",
+                should_end_session=True,
+                reprompt_text=None,
+            )
+            await _record_alexa_event(
+                request,
+                envelope=envelope,
+                event_type="alexa_feedback_stop",
+                speech_text=response.response.outputSpeech.text,
+                should_end_session=response.response.shouldEndSession,
+                verification_passed=True,
+                feedback=_feedback_event_payload(feedback_context, helpful=False, utterance=intent_name),
+            )
+            return JSONResponse(response.model_dump())
+
+        if follow_up_type == FOLLOW_UP_CONTINUATION and continuation_chunks:
+            await _clear_conversation_state(request, envelope)
+            response = _build_alexa_response(
+                "Alles klar, ich lese nicht weiter. Bis bald.",
+                should_end_session=True,
+                reprompt_text=None,
+            )
+            await _record_alexa_event(
+                request,
+                envelope=envelope,
+                event_type="alexa_continue_stop",
+                speech_text=response.response.outputSpeech.text,
+                should_end_session=response.response.shouldEndSession,
+                verification_passed=True,
+            )
+            return JSONResponse(response.model_dump())
+
         await _clear_conversation_state(request, envelope)
         response = _build_alexa_response("Bis bald.", should_end_session=True, reprompt_text=None)
         await _record_alexa_event(
