@@ -68,4 +68,4 @@ async def test_answer_status_question_reports_running_container() -> None:
     answer = await adapter.answer_status_question("is Jellyfin running", matched_key="jellyfin")
 
     assert answer.status == ResultStatus.OK
-    assert answer.answer == "Jellyfin is running and healthy."
+    assert answer.answer == "Jellyfin läuft und ist gesund."

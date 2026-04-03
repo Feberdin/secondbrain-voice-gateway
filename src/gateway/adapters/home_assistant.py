@@ -76,8 +76,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer="Home Assistant integration is disabled.",
-                next_step="Enable Home Assistant settings in the gateway configuration.",
+                answer="Die Home-Assistant-Integration ist deaktiviert.",
+                next_step="Aktiviere die Home-Assistant-Einstellungen in der Gateway-Konfiguration.",
             )
 
         alias = self._find_state_alias(question, matched_key)
@@ -85,8 +85,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.UNCERTAIN,
                 source=SourceType.HOME_ASSISTANT,
-                answer="I am not sure which Home Assistant entity you mean.",
-                next_step="Add an alias in `configs/home_assistant_aliases.yml` for that device or sensor.",
+                answer="Ich bin mir nicht sicher, welches Home-Assistant-Gerät oder welcher Sensor gemeint ist.",
+                next_step="Lege dafür einen Alias in `configs/home_assistant_aliases.yml` an.",
             )
 
         try:
@@ -101,16 +101,16 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer=f"I could not read {alias.friendly_name}.",
-                next_step="Check that the entity ID exists and that the Home Assistant token is valid.",
+                answer=f"Ich konnte den Status von {alias.friendly_name} nicht lesen.",
+                next_step="Prüfe, ob die Entity-ID existiert und ob das Home-Assistant-Token gültig ist.",
                 raw={"status_code": exc.response.status_code, "entity_id": alias.entity_id},
             )
         except httpx.TimeoutException:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer=f"Home Assistant did not answer in time for {alias.friendly_name}.",
-                next_step="Check Home Assistant load, token validity, and network latency.",
+                answer=f"Home Assistant hat für {alias.friendly_name} nicht rechtzeitig geantwortet.",
+                next_step="Prüfe Auslastung, Token und Netzwerk-Latenz von Home Assistant.",
                 raw={"entity_id": alias.entity_id},
             )
         except httpx.HTTPError as exc:
@@ -118,8 +118,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer="I could not reach Home Assistant.",
-                next_step="Check the base URL, reverse proxy, and container networking.",
+                answer="Ich konnte Home Assistant nicht erreichen.",
+                next_step="Prüfe Base-URL, Reverse Proxy und Container-Netzwerk.",
                 raw={"error": str(exc), "entity_id": alias.entity_id},
             )
 
@@ -131,8 +131,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer="Home Assistant integration is disabled.",
-                next_step="Enable Home Assistant settings in the gateway configuration.",
+                answer="Die Home-Assistant-Integration ist deaktiviert.",
+                next_step="Aktiviere die Home-Assistant-Einstellungen in der Gateway-Konfiguration.",
             )
 
         action = self._find_action_alias(question, matched_key)
@@ -140,8 +140,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer="That Home Assistant action is not allowed.",
-                next_step="Add the action to `configs/home_assistant_aliases.yml` if it is safe to expose by voice.",
+                answer="Diese Home-Assistant-Aktion ist per Sprache nicht freigegeben.",
+                next_step="Lege die Aktion nur dann in `configs/home_assistant_aliases.yml` an, wenn sie sicher per Sprache ausgelöst werden darf.",
             )
 
         url = (
@@ -157,8 +157,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer=f"I could not complete {action.friendly_name}.",
-                next_step="Check the service domain, entity ID, and Home Assistant permissions.",
+                answer=f"Ich konnte {action.friendly_name} nicht ausführen.",
+                next_step="Prüfe Service-Domain, Entity-ID und Home-Assistant-Berechtigungen.",
                 raw={"status_code": exc.response.status_code, "action_key": action.key},
             )
         except httpx.HTTPError as exc:
@@ -166,8 +166,8 @@ class HomeAssistantAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.HOME_ASSISTANT,
-                answer=f"I could not reach Home Assistant to run {action.friendly_name}.",
-                next_step="Check the base URL, token, and network path to Home Assistant.",
+                answer=f"Ich konnte Home Assistant nicht erreichen, um {action.friendly_name} auszuführen.",
+                next_step="Prüfe Base-URL, Token und den Netzwerkpfad zu Home Assistant.",
                 raw={"error": str(exc), "action_key": action.key},
             )
 
@@ -264,4 +264,3 @@ class HomeAssistantAdapter:
         if unit == "%":
             display_unit = "percent"
         return f"{value} {display_unit}".strip()
-

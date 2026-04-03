@@ -7,6 +7,8 @@ Debugging: If wording sounds odd, adjust response templates or state maps in the
 
 from __future__ import annotations
 
+import pytest
+
 from gateway.adapters.home_assistant import HomeAssistantAdapter
 from gateway.config import Settings
 from gateway.models.domain import HomeAssistantAliasConfig, HomeAssistantStateAlias, ResultStatus
@@ -43,3 +45,13 @@ def test_home_assistant_adapter_maps_binary_sensor() -> None:
 
     assert result.answer == "Paperless availability is available."
 
+
+@pytest.mark.asyncio
+async def test_home_assistant_adapter_returns_german_message_for_unknown_entity() -> None:
+    adapter = HomeAssistantAdapter(Settings(_env_file=None), HomeAssistantAliasConfig(entities=[], actions=[]))
+
+    result = await adapter.answer_state_question("wie voll sind meine ecoflow batterien")
+
+    assert result.status == ResultStatus.UNCERTAIN
+    assert result.answer == "Ich bin mir nicht sicher, welches Home-Assistant-Gerät oder welcher Sensor gemeint ist."
+    assert "configs/home_assistant_aliases.yml" in (result.next_step or "")

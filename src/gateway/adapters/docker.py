@@ -72,8 +72,8 @@ class DockerAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.DOCKER,
-                answer="Docker integration is disabled.",
-                next_step="Enable Docker settings in the gateway configuration.",
+                answer="Die Docker-Integration ist deaktiviert.",
+                next_step="Aktiviere die Docker-Einstellungen in der Gateway-Konfiguration.",
             )
 
         normalized = question.lower()
@@ -87,8 +87,8 @@ class DockerAdapter:
             return StructuredAnswer(
                 status=ResultStatus.UNCERTAIN,
                 source=SourceType.DOCKER,
-                answer="I am not sure which Docker service you mean.",
-                next_step="Add that container alias to `configs/docker_services.yml`.",
+                answer="Ich bin mir nicht sicher, welchen Docker-Dienst du meinst.",
+                next_step="Lege dafür einen Alias in `configs/docker_services.yml` an.",
             )
 
         try:
@@ -97,8 +97,8 @@ class DockerAdapter:
                 return StructuredAnswer(
                     status=ResultStatus.ERROR,
                     source=SourceType.DOCKER,
-                    answer=f"{monitor.friendly_name} is not visible through the Docker proxy.",
-                    next_step="Check the monitored container name and proxy permissions.",
+                    answer=f"{monitor.friendly_name} ist über den Docker-Proxy nicht sichtbar.",
+                    next_step="Prüfe den überwachten Container-Namen und die Proxy-Berechtigungen.",
                     raw={"monitor": monitor.model_dump()},
                 )
 
@@ -108,8 +108,8 @@ class DockerAdapter:
             return StructuredAnswer(
                 status=ResultStatus.ERROR,
                 source=SourceType.DOCKER,
-                answer="I could not read Docker status.",
-                next_step="Check the socket proxy URL, allowed endpoints, and Docker daemon reachability.",
+                answer="Ich konnte den Docker-Status nicht lesen.",
+                next_step="Prüfe Socket-Proxy-URL, freigegebene Endpunkte und die Erreichbarkeit des Docker-Daemons.",
                 raw={"error": str(exc)},
             )
 
@@ -139,26 +139,26 @@ class DockerAdapter:
         for monitor in self.monitor_config.containers:
             container = await self._find_container_payload(monitor)
             if not container:
-                unhealthy.append(f"{monitor.friendly_name} is missing")
+                unhealthy.append(f"{monitor.friendly_name} fehlt")
                 continue
             inspect = await self._inspect_container(container["Id"])
             health = self._health_state(inspect)
             status = self._status_value(inspect)
-            if health == "unhealthy" or status not in {"running", "created"}:
-                unhealthy.append(f"{monitor.friendly_name} is {health or status}")
+            if health == "ungesund" or status not in {"läuft", "erstellt"}:
+                unhealthy.append(f"{monitor.friendly_name} ist {health or status}")
 
         if not unhealthy:
             return StructuredAnswer(
                 status=ResultStatus.OK,
                 source=SourceType.DOCKER,
-                answer="All monitored Docker services look healthy.",
+                answer="Alle überwachten Docker-Dienste sehen gesund aus.",
             )
 
         return StructuredAnswer(
             status=ResultStatus.UNCERTAIN,
             source=SourceType.DOCKER,
-            answer="These monitored services need attention: " + "; ".join(unhealthy[:3]),
-            next_step="Ask about a specific container for a focused status and first checks.",
+            answer="Diese überwachten Docker-Dienste brauchen Aufmerksamkeit: " + "; ".join(unhealthy[:3]),
+            next_step="Frage nach einem konkreten Container, wenn du einen gezielten Status mit ersten Prüfungen möchtest.",
             raw={"unhealthy": unhealthy},
         )
 
@@ -171,20 +171,20 @@ class DockerAdapter:
             inspect = await self._inspect_container(container["Id"])
             restart_count = int(inspect.get("RestartCount") or 0)
             if restart_count > 0:
-                restarted.append(f"{monitor.friendly_name} restarted {restart_count} times")
+                restarted.append(f"{monitor.friendly_name} wurde {restart_count} Mal neu gestartet")
 
         if not restarted:
             return StructuredAnswer(
                 status=ResultStatus.OK,
                 source=SourceType.DOCKER,
-                answer="No monitored container reports recent restarts.",
+                answer="Kein überwachter Container meldet kürzliche Neustarts.",
             )
 
         return StructuredAnswer(
             status=ResultStatus.UNCERTAIN,
             source=SourceType.DOCKER,
-            answer="Recent restart summary: " + "; ".join(restarted[:3]),
-            next_step="Inspect the most restarted container and its health checks first.",
+            answer="Zusammenfassung der Neustarts: " + "; ".join(restarted[:3]),
+            next_step="Prüfe zuerst den Container mit den meisten Neustarts und seine Healthchecks.",
             raw={"restarts": restarted},
         )
 
@@ -205,19 +205,22 @@ class DockerAdapter:
         status = self._status_value(inspect)
         health = self._health_state(inspect)
         restart_count = int(inspect.get("RestartCount") or 0)
-        answer = f"{monitor.friendly_name} is {status}"
+        if status in {"läuft", "startet gerade neu", "wird entfernt"}:
+            answer = f"{monitor.friendly_name} {status}"
+        else:
+            answer = f"{monitor.friendly_name} ist {status}"
         if health:
-            answer += f" and {health}"
+            answer += f" und ist {health}"
         if restart_count:
-            answer += f". It has restarted {restart_count} times"
+            answer += f". Es wurde {restart_count} Mal neu gestartet"
         answer += "."
 
         next_step = None
         result_status = ResultStatus.OK
-        if status != "running" or health == "unhealthy":
+        if status != "läuft" or health == "ungesund":
             result_status = ResultStatus.ERROR
             if monitor.first_checks:
-                next_step = "Check " + ", then ".join(monitor.first_checks[:2]) + "."
+                next_step = "Prüfe " + ", dann ".join(monitor.first_checks[:2]) + "."
 
         details = None
         if self.settings.docker_include_log_hints and (
@@ -305,11 +308,27 @@ class DockerAdapter:
     @staticmethod
     def _status_value(inspect: dict[str, Any]) -> str:
         state = inspect.get("State", {})
-        return str(state.get("Status") or "unknown")
+        raw_status = str(state.get("Status") or "unknown").lower()
+        return {
+            "running": "läuft",
+            "created": "erstellt",
+            "exited": "beendet",
+            "dead": "gestoppt",
+            "paused": "pausiert",
+            "restarting": "startet gerade neu",
+            "removing": "wird entfernt",
+            "unknown": "unbekannt",
+        }.get(raw_status, raw_status)
 
     @staticmethod
     def _health_state(inspect: dict[str, Any]) -> str | None:
         state = inspect.get("State", {})
         health = state.get("Health", {})
-        status = health.get("Status")
-        return str(status) if status else None
+        raw_status = str(health.get("Status") or "").lower()
+        if not raw_status:
+            return None
+        return {
+            "healthy": "gesund",
+            "unhealthy": "ungesund",
+            "starting": "startet noch",
+        }.get(raw_status, raw_status)
