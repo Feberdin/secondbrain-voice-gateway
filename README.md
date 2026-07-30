@@ -381,7 +381,7 @@ Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler
 
 ## Broker OAuth Deployment
 
-Use [`deploy/unraid-broker/oauth-compose.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/deploy/unraid-broker/oauth-compose.yml) for the optional Alexa account-linking OAuth server when deploying through the Unraid Deployment Broker.
+Use [`deploy/unraid-broker/oauth-compose.yml`](deploy/unraid-broker/oauth-compose.yml) for the optional Alexa account-linking OAuth server when deploying through the Unraid Deployment Broker.
 
 Required Broker settings:
 
@@ -393,15 +393,20 @@ Required Broker settings:
 Required Broker secrets:
 
 - `SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`
-- `SECONDBRAIN_VOICE_OAUTH_DATABASE_URL`
-- `SECONDBRAIN_VOICE_OAUTH_PUBLIC_BASE_URL`
 - `SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET`
 - `SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS`
 - `SECONDBRAIN_VOICE_OAUTH_JWT_SECRET`
 - `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_EMAIL`
 - `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_PASSWORD`
 
-Do not put the real OAuth client secret, JWT secret, database URL, or bootstrap password in `.env`, Markdown, GitHub comments, or PR descriptions.
+`PUBLIC_BASE_URL` and the database host/name/user are non-secret Compose settings. The OAuth server
+builds its PostgreSQL URL in memory so the database password is stored only once. Do not put the real
+OAuth client secret, JWT secret, database password, or bootstrap password in `.env`, Markdown,
+GitHub comments, or PR descriptions.
+
+The public tunnel must route `/oauth/authorize`, `/login`, `/oauth/token`, and `/me` to the OAuth
+service on port `3100` before the hostname-wide rule that routes the remaining gateway paths to port
+`8001`.
 
 ## How It Routes Questions
 

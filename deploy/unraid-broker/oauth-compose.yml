@@ -42,14 +42,18 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # Why this exists: the OAuth app fails fast when required deployment-specific values are missing.
-      # What happens here: the Broker injects secrets at deploy_apply time and keeps literal values out of Git.
+      # Why this exists: public routing and database coordinates are configuration, not secrets.
+      # What happens here: only passwords and credentials are injected by the Broker at deploy_apply time.
       NODE_ENV: production
       PORT: "3000"
-      PUBLIC_BASE_URL: secret://SECONDBRAIN_VOICE_OAUTH_PUBLIC_BASE_URL
+      PUBLIC_BASE_URL: https://secondbrain-voice.feberdin.de
       TRUST_PROXY: "true"
       REQUIRE_HTTPS: "true"
-      DATABASE_URL: secret://SECONDBRAIN_VOICE_OAUTH_DATABASE_URL
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: secondbrain_oauth
+      DB_USER: oauth_user
+      DB_PASSWORD: secret://SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD
       CLIENT_ID: alexa-secondbrain
       CLIENT_SECRET: secret://SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET
       DEFAULT_SCOPE: secondbrain.voice

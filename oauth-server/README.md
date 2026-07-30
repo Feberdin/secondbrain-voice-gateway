@@ -67,7 +67,7 @@ oauth-server/
 2. Replace:
    - `CLIENT_SECRET`
    - `JWT_SECRET`
-   - `DATABASE_URL` password
+   - `DB_PASSWORD`
    - `BOOTSTRAP_USER_EMAIL`
    - `BOOTSTRAP_USER_PASSWORD`
 3. Start the stack:
@@ -86,8 +86,11 @@ curl http://localhost:3100/health
 
 5. Point your reverse proxy so:
 
-- `https://voice-gateway.example.com/oauth/authorize` -> this container
-- `https://voice-gateway.example.com/oauth/token` -> this container
+- `/oauth/authorize`, `/login`, `/oauth/token`, and `/me` -> this OAuth container
+- `/alexa/skill` and all remaining gateway paths -> the voice gateway container
+
+Path-specific rules must appear before the hostname-wide gateway rule. Otherwise Alexa reaches the
+FastAPI gateway for `/oauth/authorize` and receives `{"detail":"Not Found"}`.
 
 Because Cloudflare terminates TLS in front of your origin, leave:
 
@@ -130,6 +133,10 @@ Domain:
 Token Expiration:
 
 `3600`
+
+Only users that already exist in the OAuth database can link the skill. The service has no public
+registration endpoint. For a single-user installation, keep only your bootstrap account and disable
+Alexa's "Allow users to enable skill without account linking" option.
 
 ## Curl Example For Token Exchange
 

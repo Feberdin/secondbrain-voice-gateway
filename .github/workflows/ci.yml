@@ -11,6 +11,7 @@ on:
     branches:
       - main
       - "agent/**"
+      - "codex/**"
 
 permissions:
   contents: read
@@ -72,6 +73,9 @@ jobs:
 
       - name: Syntax-check JavaScript sources
         run: find src scripts -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Run OAuth configuration tests
+        run: npm test
 
   docker-builds:
     name: Docker image builds

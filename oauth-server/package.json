@@ -6,7 +6,8 @@
   "description": "Minimal OAuth2 authorization server for Alexa account linking.",
   "scripts": {
     "start": "node src/server.js",
-    "create-user": "node scripts/create-user.js"
+    "create-user": "node scripts/create-user.js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=20.0.0"

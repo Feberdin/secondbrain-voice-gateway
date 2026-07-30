@@ -130,7 +130,7 @@ That last value is an inference from your current container naming and network s
 
 ## Broker GitOps For OAuth
 
-Use [`deploy/unraid-broker/oauth-compose.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/deploy/unraid-broker/oauth-compose.yml) when the optional account-linking OAuth server should be deployed through the Unraid Deployment Broker.
+Use [`deploy/unraid-broker/oauth-compose.yml`](../deploy/unraid-broker/oauth-compose.yml) when the optional account-linking OAuth server should be deployed through the Unraid Deployment Broker.
 
 Why this exists:
 
@@ -141,8 +141,6 @@ Why this exists:
 Required Broker secrets:
 
 - `SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`
-- `SECONDBRAIN_VOICE_OAUTH_DATABASE_URL`
-- `SECONDBRAIN_VOICE_OAUTH_PUBLIC_BASE_URL`
 - `SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET`
 - `SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS`
 - `SECONDBRAIN_VOICE_OAUTH_JWT_SECRET`
@@ -155,6 +153,18 @@ Broker stack settings:
 - Compose file: `deploy/unraid-broker/oauth-compose.yml`
 - Working directory: repository root
 - Git ref: a full commit SHA, never a branch name
+
+The database URL is assembled inside the OAuth process from the safe Compose values and
+`SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`. `PUBLIC_BASE_URL` is also a normal Compose value, not
+a secret.
+
+Cloudflare Tunnel rule order for `secondbrain-voice.feberdin.de`:
+
+1. `/oauth/authorize`, `/login`, `/oauth/token`, and `/me` -> `http://UNRAID-IP:3100`
+2. hostname-wide fallback -> `http://UNRAID-IP:8001`
+
+The path-specific OAuth rule must come first. A `{"detail":"Not Found"}` response during Alexa
+account linking means the request still reached the FastAPI gateway on port `8001`.
 
 ## First Start Checks
 

@@ -7,10 +7,12 @@
 
 import { config as loadDotenv } from "dotenv";
 
+import { buildDatabaseUrl } from "./databaseUrl.js";
+
 loadDotenv();
 
-function requireEnv(name) {
-  const value = process.env[name];
+function requireEnv(name, environment = process.env) {
+  const value = environment[name];
   if (!value || !value.trim()) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
@@ -52,7 +54,7 @@ const config = {
   publicBaseUrl: requireEnv("PUBLIC_BASE_URL"),
   trustProxy: parseBoolean("TRUST_PROXY", true),
   requireHttps: parseBoolean("REQUIRE_HTTPS", true),
-  databaseUrl: requireEnv("DATABASE_URL"),
+  databaseUrl: buildDatabaseUrl(),
   clientId: requireEnv("CLIENT_ID"),
   clientSecret: requireEnv("CLIENT_SECRET"),
   defaultScope: process.env.DEFAULT_SCOPE || "secondbrain.voice",
@@ -73,4 +75,3 @@ if (config.requireHttps && !config.publicBaseUrl.startsWith("https://")) {
 }
 
 export default config;
-
