@@ -25,10 +25,10 @@ jobs:
       # Why this exists: every PR must prove the FastAPI gateway still imports and passes its unit tests.
       # What happens here: install from pyproject.toml including dev extras, then run pytest exactly as documented.
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -52,10 +52,10 @@ jobs:
       # Why this exists: this PR changes the OAuth server dependency graph to remove vulnerable transitives.
       # What happens here: npm installs strictly from package-lock.json, audits the result, and syntax-checks JS files.
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
@@ -82,7 +82,7 @@ jobs:
       # Why this exists: dependency and Dockerfile changes are only safe if both production images still build.
       # What happens here: build the gateway image and the OAuth image without starting services or reading secrets.
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build gateway image
         run: docker build -f docker/Dockerfile .
