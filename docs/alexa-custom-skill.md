@@ -1,6 +1,7 @@
-# Purpose
-
-This document explains how to connect the self-hosted gateway to an Amazon Alexa Custom Skill.
+# Purpose: Explain how to connect the self-hosted gateway to an Amazon Alexa Custom Skill.
+# Input/Output: Operators use these steps to configure Alexa endpoints and copy the generated Skill ID into runtime config.
+# Invariants: Real Skill IDs, user IDs, endpoint hostnames, and OAuth secrets stay outside Git.
+# Debugging: If Alexa rejects the endpoint, compare the Developer Console endpoint, `ALEXA_APPLICATION_IDS`, and gateway logs.
 
 ## Important Skill Type Note
 
@@ -18,13 +19,13 @@ Why:
 1. Open the Alexa Developer Console and create a new custom skill.
 2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
 3. Set the invocation name to `second brain` or change it to a name you prefer such as `my system`.
-4. Point the HTTPS endpoint to `https://secondbrain-voice.feberdin.de/alexa/skill`.
+4. Point the HTTPS endpoint to `https://voice-gateway.example.com/alexa/skill`.
 5. Copy the generated Skill ID into `ALEXA_APPLICATION_IDS` in `.env`.
 
-Current environment values:
+Environment-specific values:
 
-- Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
-- HTTPS endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
+- Skill ID: `amzn1.ask.skill.example-skill-id`
+- HTTPS endpoint: `https://voice-gateway.example.com/alexa/skill`
 - Optional private-use gate: `ALEXA_ALLOWED_USER_IDS=<your Alexa userId>`
 
 ## Endpoint Requirements
@@ -51,8 +52,8 @@ Current environment values:
   - “Frage wie voll meine EcoFlow Batterien sind.”
 - Account linking is optional for the gateway itself.
 - If you enable it in Alexa, use these OAuth endpoints:
-  - `https://secondbrain-voice.feberdin.de/oauth/authorize`
-  - `https://secondbrain-voice.feberdin.de/oauth/token`
+  - `https://voice-gateway.example.com/oauth/authorize`
+  - `https://voice-gateway.example.com/oauth/token`
 
 ## Keeping The Skill Private
 

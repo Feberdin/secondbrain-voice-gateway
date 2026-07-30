@@ -47,6 +47,9 @@ secondbrain-voice-gateway/
 │   ├── docker_services.yml
 │   ├── home_assistant_aliases.yml
 │   └── troubleshooting_knowledge.yml
+├── deploy/
+│   └── unraid-broker/
+│       └── oauth-compose.yml
 ├── data/
 │   └── .gitkeep
 ├── docker/
@@ -268,9 +271,9 @@ Account linking note:
 
 - The gateway works without account linking.
 - If you want account linking now, use the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
-- For this environment the OAuth endpoints are:
-  - `https://secondbrain-voice.feberdin.de/oauth/authorize`
-  - `https://secondbrain-voice.feberdin.de/oauth/token`
+- Configure OAuth endpoints in the Alexa Developer Console with your deployment hostname:
+  - `https://voice-gateway.example.com/oauth/authorize`
+  - `https://voice-gateway.example.com/oauth/token`
 
 Private-use note:
 
@@ -375,6 +378,30 @@ AI_MODEL=gpt-4o-mini
 ```
 
 Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/docs/unraid.md).
+
+## Broker OAuth Deployment
+
+Use [`deploy/unraid-broker/oauth-compose.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/deploy/unraid-broker/oauth-compose.yml) for the optional Alexa account-linking OAuth server when deploying through the Unraid Deployment Broker.
+
+Required Broker settings:
+
+- Stack name: `secondbrain-voice-oauth`
+- Compose file: `deploy/unraid-broker/oauth-compose.yml`
+- Working directory: repository root
+- Git ref: full commit SHA only
+
+Required Broker secrets:
+
+- `SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`
+- `SECONDBRAIN_VOICE_OAUTH_DATABASE_URL`
+- `SECONDBRAIN_VOICE_OAUTH_PUBLIC_BASE_URL`
+- `SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS`
+- `SECONDBRAIN_VOICE_OAUTH_JWT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_EMAIL`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_PASSWORD`
+
+Do not put the real OAuth client secret, JWT secret, database URL, or bootstrap password in `.env`, Markdown, GitHub comments, or PR descriptions.
 
 ## How It Routes Questions
 

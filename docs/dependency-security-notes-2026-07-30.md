@@ -25,6 +25,7 @@ Focus areas:
 - `express@4.22.2` keeps the project on Express 4 while taking patched `body-parser@1.20.6` and `qs@6.15.3`.
 - `oauth-server/Dockerfile` now copies `package-lock.json` and uses `npm ci --omit=dev`, so the production image installs exactly the reviewed lockfile graph.
 - Public examples no longer include the real deployment Skill ID, internal SecondBrain host, or internal Home Assistant host.
+- `deploy/unraid-broker/oauth-compose.yml` adds a Broker-specific OAuth deployment path with `secret://...` references and explicit Docker IPAM. This keeps local developer Compose unchanged while making Broker validation possible.
 - `.github/workflows/ci.yml` now runs the documented Python tests, OAuth npm audit/syntax checks, and Docker image builds for `main`, `agent/**`, `codex/**`, and pull requests.
 
 ## Compatibility Notes
@@ -38,7 +39,7 @@ Focus areas:
 
 - The code findings in `src/gateway/config.py`, `src/gateway/alexa/security.py`, `src/gateway/routing/classifier.py`, `src/gateway/services/orchestrator.py`, `src/gateway/api/routes.py`, `oauth-server/src/config.js`, `oauth-server/src/db.js`, and `oauth-server/src/services/oauthService.js` are variable names, redaction paths, or runtime token handling. No literal secret values were found in those files.
 - The README and `.env.example` did include environment-specific production identifiers. Those are now placeholders.
-- Real secret values must be supplied through local secret files, runtime environment variables, or the Unraid Deployment Broker secret flow. Do not commit `.env` or files under `secrets/`.
+- Real secret values must be supplied through local secret files, runtime environment variables, or the Unraid Deployment Broker secret flow. Do not commit `.env`, files under `secrets/`, literal OAuth URLs that contain credentials, or real deployment identifiers.
 
 ## Validation
 
@@ -74,6 +75,13 @@ docker compose -f oauth-server/docker-compose.yml config
 ```
 
 Local Compose checks require a Docker CLI with the Compose plugin.
+
+Broker preflight:
+
+```text
+stack_scan_repo -> deploy/unraid-broker/oauth-compose.yml must appear with the expected secret:// references.
+stack_validate -> run against stack secondbrain-voice-oauth and the reviewed full commit SHA before deploy_plan.
+```
 
 Runtime health checks require the configured PostgreSQL database and OAuth environment variables:
 
