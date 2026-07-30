@@ -1,6 +1,7 @@
-# Purpose
-
-This document explains how to deploy `secondbrain-voice-gateway` on Unraid with secure defaults.
+# Purpose: Explain Unraid deployment paths for `secondbrain-voice-gateway` and its optional OAuth server.
+# Input/Output: Operators read this file to choose DockerMan templates or Broker GitOps and to provide environment-specific values outside Git.
+# Invariants: Real Skill IDs, endpoint URLs, tokens, and private host addresses stay in runtime configuration or Broker secrets, not in this document.
+# Debugging: Validate the selected deployment path first, then inspect health endpoints and redacted logs.
 
 ## Why There Are Two Templates
 
@@ -17,10 +18,10 @@ That split keeps the voice gateway away from the raw Docker socket.
 - You have shell access to the Unraid host.
 - You want to keep config files under `/mnt/user/appdata/secondbrain-voice-gateway/`.
 - You either clone the repository on Unraid or copy it there from another machine.
-- Your existing SecondBrain containers already run on `secondbrain-net`.
-- Your current SecondBrain API is reachable on `http://192.168.57.10:8080`.
-- Your Home Assistant is reachable on `http://192.168.57.5:8123`.
-- Paperless already uses host port `8000`, so the gateway should use host port `8001`.
+- Your existing SecondBrain containers already run on a Docker network reachable from the gateway.
+- Your current SecondBrain API base URL is known to the operator.
+- Your Home Assistant base URL is known to the operator.
+- If another service already uses host port `8000`, choose a different gateway host port such as `8001`.
 
 ## Template Files
 
@@ -103,18 +104,18 @@ docker build -t secondbrain-voice-gateway:local -f docker/Dockerfile .
    - `AI_API_KEY`
 6. Create the gateway container.
 
-Recommended values for your current environment:
+Recommended value pattern for an environment-specific deployment:
 
 - Network: `secondbrain-net`
 - Web UI host port: `8001`
-- `ALEXA_APPLICATION_IDS=amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
+- `ALEXA_APPLICATION_IDS=amzn1.ask.skill.example-skill-id`
 - `ALEXA_ALLOWED_USER_IDS=<your Alexa userId>` if you want a private single-user setup
-- `SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080`
-- `HOME_ASSISTANT_BASE_URL=http://192.168.57.5:8123`
+- `SECOND_BRAIN_BASE_URL=http://secondbrain.example.internal:8080`
+- `HOME_ASSISTANT_BASE_URL=http://homeassistant.example.internal:8123`
 - `DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375`
-- Alexa HTTPS endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
-- OAuth authorization endpoint: `https://secondbrain-voice.feberdin.de/oauth/authorize`
-- OAuth token endpoint: `https://secondbrain-voice.feberdin.de/oauth/token`
+- Alexa HTTPS endpoint: `https://voice-gateway.example.com/alexa/skill`
+- OAuth authorization endpoint: `https://voice-gateway.example.com/oauth/authorize`
+- OAuth token endpoint: `https://voice-gateway.example.com/oauth/token`
 
 Important Alexa note:
 
@@ -126,6 +127,34 @@ If you prefer internal Docker DNS instead of the host IP, you can also try:
 - `SECOND_BRAIN_BASE_URL=http://SecondBrain-App:8080`
 
 That last value is an inference from your current container naming and network setup.
+
+## Broker GitOps For OAuth
+
+Use [`deploy/unraid-broker/oauth-compose.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/deploy/unraid-broker/oauth-compose.yml) when the optional account-linking OAuth server should be deployed through the Unraid Deployment Broker.
+
+Why this exists:
+
+- The local `oauth-server/docker-compose.yml` is optimized for developer machines.
+- The Broker compose file uses `secret://...` references so real values are injected only during `deploy_apply`.
+- The OAuth server is separate from the legacy DockerMan voice gateway containers, so validating it does not imply a gateway cutover.
+
+Required Broker secrets:
+
+- `SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`
+- `SECONDBRAIN_VOICE_OAUTH_DATABASE_URL`
+- `SECONDBRAIN_VOICE_OAUTH_PUBLIC_BASE_URL`
+- `SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS`
+- `SECONDBRAIN_VOICE_OAUTH_JWT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_EMAIL`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_PASSWORD`
+
+Broker stack settings:
+
+- Stack name: `secondbrain-voice-oauth`
+- Compose file: `deploy/unraid-broker/oauth-compose.yml`
+- Working directory: repository root
+- Git ref: a full commit SHA, never a branch name
 
 ## First Start Checks
 
@@ -163,11 +192,11 @@ If SecondBrain calls fail:
 
 The gateway already supports OpenAI without further code changes.
 
-Set these in the Unraid template:
+Set these in the Unraid template or Broker secret/config flow:
 
 - `AI_ENABLED=true`
 - `AI_BASE_URL=https://api.openai.com/v1`
 - `AI_MODEL=gpt-4o-mini`
-- `AI_API_KEY=...`
+- `AI_API_KEY=<configured outside Git>`
 
 I chose these defaults because OpenAI's API reference documents Chat Completions under the `/v1/chat/completions` path, and the current OpenAI model page describes `gpt-4o-mini` as a fast, affordable model for focused tasks.
