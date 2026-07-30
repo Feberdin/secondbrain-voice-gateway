@@ -237,14 +237,15 @@ Why this matters:
 
 1. Create a custom skill in the Alexa Developer Console.
 2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
-3. Set the HTTPS endpoint to `https://secondbrain-voice.feberdin.de/alexa/skill`.
+3. Set the HTTPS endpoint to your deployed gateway URL, for example `https://voice-gateway.example.com/alexa/skill`.
 4. Copy the skill ID to `ALEXA_APPLICATION_IDS`.
 5. Build and test the skill in the Alexa console.
 
-Current production values for this environment:
+Production values:
 
-- Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
-- Endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
+- Keep the real Skill ID and endpoint in your deployment environment, not in the public README.
+- Use `ALEXA_APPLICATION_IDS` for one or more allowed Skill IDs.
+- Keep `ALEXA_VERIFY_SIGNATURE=true` in production.
 
 Sample utterances handled by the model:
 
@@ -364,10 +365,10 @@ cp examples/unraid/*.xml /boot/config/plugins/dockerMan/templates-user/my-second
 cp configs/*.yml /mnt/user/appdata/secondbrain-voice-gateway/configs/
 ```
 
-For your current environment, start with these values in the Unraid template:
+For your environment, start with these non-secret example values in the Unraid template:
 
 ```bash
-SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080
+SECOND_BRAIN_BASE_URL=http://secondbrain.example.internal:8080
 DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375
 AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
