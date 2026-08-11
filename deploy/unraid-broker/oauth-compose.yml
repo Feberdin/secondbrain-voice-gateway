@@ -15,7 +15,10 @@ x-oauth-logging: &oauth-logging
 
 services:
   postgres:
-    image: postgres:16-bookworm
+    # Why this exists: the readable release tag documents the intended major
+    # version, while the digest keeps Broker deployments bit-reproducible.
+    # Refresh the digest only after tests and an explicit image review.
+    image: postgres:16-bookworm@sha256:64154d0babcb1741988719e703419af0382b19953706149f9872fbd0f438efa8
     restart: unless-stopped
     logging: *oauth-logging
     environment:
