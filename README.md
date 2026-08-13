@@ -47,6 +47,9 @@ secondbrain-voice-gateway/
 │   ├── docker_services.yml
 │   ├── home_assistant_aliases.yml
 │   └── troubleshooting_knowledge.yml
+├── deploy/
+│   └── unraid-broker/
+│       └── oauth-compose.yml
 ├── data/
 │   └── .gitkeep
 ├── docker/
@@ -237,14 +240,15 @@ Why this matters:
 
 1. Create a custom skill in the Alexa Developer Console.
 2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
-3. Set the HTTPS endpoint to `https://secondbrain-voice.feberdin.de/alexa/skill`.
+3. Set the HTTPS endpoint to your deployed gateway URL, for example `https://voice-gateway.example.com/alexa/skill`.
 4. Copy the skill ID to `ALEXA_APPLICATION_IDS`.
 5. Build and test the skill in the Alexa console.
 
-Current production values for this environment:
+Production values:
 
-- Skill ID: `amzn1.ask.skill.f55efcdd-a256-41ac-8f64-409d4d7b56d0`
-- Endpoint: `https://secondbrain-voice.feberdin.de/alexa/skill`
+- Keep the real Skill ID and endpoint in your deployment environment, not in the public README.
+- Use `ALEXA_APPLICATION_IDS` for one or more allowed Skill IDs.
+- Keep `ALEXA_VERIFY_SIGNATURE=true` in production.
 
 Sample utterances handled by the model:
 
@@ -267,9 +271,9 @@ Account linking note:
 
 - The gateway works without account linking.
 - If you want account linking now, use the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
-- For this environment the OAuth endpoints are:
-  - `https://secondbrain-voice.feberdin.de/oauth/authorize`
-  - `https://secondbrain-voice.feberdin.de/oauth/token`
+- Configure OAuth endpoints in the Alexa Developer Console with your deployment hostname:
+  - `https://voice-gateway.example.com/oauth/authorize`
+  - `https://voice-gateway.example.com/oauth/token`
 
 Private-use note:
 
@@ -364,16 +368,45 @@ cp examples/unraid/*.xml /boot/config/plugins/dockerMan/templates-user/my-second
 cp configs/*.yml /mnt/user/appdata/secondbrain-voice-gateway/configs/
 ```
 
-For your current environment, start with these values in the Unraid template:
+For your environment, start with these non-secret example values in the Unraid template:
 
 ```bash
-SECOND_BRAIN_BASE_URL=http://192.168.57.10:8080
+SECOND_BRAIN_BASE_URL=http://secondbrain.example.internal:8080
 DOCKER_BASE_URL=http://secondbrain-docker-proxy:2375
 AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
 ```
 
 Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/docs/unraid.md).
+
+## Broker OAuth Deployment
+
+Use [`deploy/unraid-broker/oauth-compose.yml`](deploy/unraid-broker/oauth-compose.yml) for the optional Alexa account-linking OAuth server when deploying through the Unraid Deployment Broker.
+
+Required Broker settings:
+
+- Stack name: `secondbrain-voice-oauth`
+- Compose file: `deploy/unraid-broker/oauth-compose.yml`
+- Working directory: repository root
+- Git ref: full commit SHA only
+
+Required Broker secrets:
+
+- `SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD`
+- `SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS`
+- `SECONDBRAIN_VOICE_OAUTH_JWT_SECRET`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_EMAIL`
+- `SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_PASSWORD`
+
+`PUBLIC_BASE_URL` and the database host/name/user are non-secret Compose settings. The OAuth server
+builds its PostgreSQL URL in memory so the database password is stored only once. Do not put the real
+OAuth client secret, JWT secret, database password, or bootstrap password in `.env`, Markdown,
+GitHub comments, or PR descriptions.
+
+The public tunnel must route `/oauth/authorize`, `/login`, `/oauth/token`, and `/me` to the OAuth
+service on port `3100` before the hostname-wide rule that routes the remaining gateway paths to port
+`8001`.
 
 ## How It Routes Questions
 

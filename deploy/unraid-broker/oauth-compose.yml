@@ -1,0 +1,92 @@
+# Purpose: Deploy the Alexa account-linking OAuth server through the Unraid Deployment Broker.
+# Input/Output: The Broker reads this file from a pinned Git commit, resolves secret:// values, and runs the OAuth/PostgreSQL stack.
+# Invariants: No local .env file, no committed secret files, no host network, and no raw Docker socket are required for this stack.
+# Debugging: Start with Broker stack_validate/deploy_plan output, then inspect oauth-server and postgres logs through logs_tail.
+
+name: secondbrain-voice-oauth
+
+# Why this exists: Broker-managed stacks should keep logs bounded so long-running services do not fill appdata.
+# What happens here: every service writes json-file logs with a small rotation window.
+x-oauth-logging: &oauth-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    # Why this exists: the readable release tag documents the intended major
+    # version, while the digest keeps Broker deployments bit-reproducible.
+    # Refresh the digest only after tests and an explicit image review.
+    image: postgres:16-bookworm@sha256:64154d0babcb1741988719e703419af0382b19953706149f9872fbd0f438efa8
+    restart: unless-stopped
+    logging: *oauth-logging
+    environment:
+      POSTGRES_DB: secondbrain_oauth
+      POSTGRES_USER: oauth_user
+      POSTGRES_PASSWORD: secret://SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oauth_user -d secondbrain_oauth"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  oauth-server:
+    build:
+      context: ./oauth-server
+      dockerfile: Dockerfile
+    pull_policy: build
+    restart: unless-stopped
+    logging: *oauth-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Why this exists: public routing and database coordinates are configuration, not secrets.
+      # What happens here: only passwords and credentials are injected by the Broker at deploy_apply time.
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_BASE_URL: https://secondbrain-voice.feberdin.de
+      TRUST_PROXY: "true"
+      REQUIRE_HTTPS: "true"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: secondbrain_oauth
+      DB_USER: oauth_user
+      DB_PASSWORD: secret://SECONDBRAIN_VOICE_OAUTH_POSTGRES_PASSWORD
+      CLIENT_ID: alexa-secondbrain
+      CLIENT_SECRET: secret://SECONDBRAIN_VOICE_OAUTH_CLIENT_SECRET
+      DEFAULT_SCOPE: secondbrain.voice
+      ALLOWED_REDIRECT_URIS: secret://SECONDBRAIN_VOICE_OAUTH_ALLOWED_REDIRECT_URIS
+      JWT_SECRET: secret://SECONDBRAIN_VOICE_OAUTH_JWT_SECRET
+      JWT_ISSUER: secondbrain-voice
+      JWT_AUDIENCE: secondbrain-voice
+      BOOTSTRAP_USER_EMAIL: secret://SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_EMAIL
+      BOOTSTRAP_USER_PASSWORD: secret://SECONDBRAIN_VOICE_OAUTH_BOOTSTRAP_USER_PASSWORD
+    ports:
+      - "3100:3000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/health').then((response) =>
+          process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres-data:
+
+# Why this exists: the Broker requires an explicit bridge subnet to avoid Docker auto-picking a LAN/VLAN-overlapping range.
+# What happens here: the OAuth stack receives the Broker-suggested 10.200.10.0/24 subnet.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.200.10.0/24
+          gateway: 10.200.10.1

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: secondbrain_oauth
       POSTGRES_USER: oauth_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_db_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
     volumes:
       - oauth_postgres_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
@@ -24,8 +24,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://oauth_user:${POSTGRES_PASSWORD:-change_me_db_password}@postgres:5432/secondbrain_oauth}
     ports:
       - "${OAUTH_HOST_PORT:-3100}:3000"
     depends_on:
@@ -39,4 +37,3 @@ services:
 
 volumes:
   oauth_postgres_data:
-
