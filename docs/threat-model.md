@@ -12,7 +12,7 @@ This document captures the main security assumptions and risks for operating the
 
 - Alexa application IDs are allowlisted.
 - Alexa request signature verification is supported and should remain enabled in production.
-- Home Assistant actions are explicitly allowlisted in [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml).
+- Home Assistant actions are explicitly allowlisted in [`configs/home_assistant_aliases.yml`](../configs/home_assistant_aliases.yml).
 - Docker access is read-only and proxied through `docker-socket-proxy`.
 - Secrets can be supplied via mounted files instead of plain environment variables.
 - Optional IP allowlisting can restrict who may call the gateway endpoint.

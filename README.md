@@ -111,7 +111,7 @@ Why it is structured this way:
 - explicit spoken prefixes such as `frage chatgpt`, `frage paperless`, `frage home assistant`, and `frage docker`
 - dedicated latest-mail shortcut for phrases like “lies mir den Inhalt meiner letzten Mail vor”
 - optional OpenAI-compatible AI fallback for ambiguous routing, direct general questions, or answer compression
-- optional standalone OAuth2 account-linking server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md)
+- optional standalone OAuth2 account-linking server under [`oauth-server/`](oauth-server/README.md)
 - optional Alexa feedback prompt after completed answers
 - structured JSON logs with request IDs
 - optional daily JSONL request history for later routing and prompt tuning
@@ -158,9 +158,9 @@ Set at least:
 
 Review and update:
 
-- [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml)
-- [`configs/docker_services.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/docker_services.yml)
-- [`configs/troubleshooting_knowledge.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/troubleshooting_knowledge.yml)
+- [`configs/home_assistant_aliases.yml`](configs/home_assistant_aliases.yml)
+- [`configs/docker_services.yml`](configs/docker_services.yml)
+- [`configs/troubleshooting_knowledge.yml`](configs/troubleshooting_knowledge.yml)
 
 ### 4. Start the stack
 
@@ -236,10 +236,10 @@ Why this matters:
 - The gateway also uses `AMAZON.YesIntent` and `AMAZON.NoIntent` for the optional feedback prompt after an answer is complete.
 - Import the current example interaction model after updates so explicit German fallback intents such as `ContinueIntent`, `PositiveFeedbackIntent`, and `NegativeFeedbackIntent` are available.
 - Smart Home skills use discovery and directive payloads instead of the intent model implemented by this gateway.
-- Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
+- Account linking can still be added to the Custom Skill through the standalone OAuth server under [`oauth-server/`](oauth-server/README.md).
 
 1. Create a custom skill in the Alexa Developer Console.
-2. Import [`examples/alexa_interaction_model.json`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/alexa_interaction_model.json).
+2. Import [`examples/alexa_interaction_model.json`](examples/alexa_interaction_model.json).
 3. Set the HTTPS endpoint to your deployed gateway URL, for example `https://voice-gateway.example.com/alexa/skill`.
 4. Copy the skill ID to `ALEXA_APPLICATION_IDS`.
 5. Build and test the skill in the Alexa console.
@@ -270,7 +270,7 @@ Sample utterances handled by the model:
 Account linking note:
 
 - The gateway works without account linking.
-- If you want account linking now, use the standalone OAuth server under [`oauth-server/`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/oauth-server/README.md).
+- If you want account linking now, use the standalone OAuth server under [`oauth-server/`](oauth-server/README.md).
 - Configure OAuth endpoints in the Alexa Developer Console with your deployment hostname:
   - `https://voice-gateway.example.com/oauth/authorize`
   - `https://voice-gateway.example.com/oauth/token`
@@ -300,13 +300,13 @@ Practical example aliases included:
 
 To add a new sensor:
 
-1. Add a new `entities` entry to [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml).
+1. Add a new `entities` entry to [`configs/home_assistant_aliases.yml`](configs/home_assistant_aliases.yml).
 2. Add one or more spoken aliases.
 3. Add a `response_template` that sounds natural when read aloud.
 
 To add a new safe action:
 
-1. Add a new `actions` entry to [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml).
+1. Add a new `actions` entry to [`configs/home_assistant_aliases.yml`](configs/home_assistant_aliases.yml).
 2. Keep it low risk.
 3. Use a very specific alias list.
 4. Document the safety note.
@@ -339,8 +339,8 @@ Operational examples included:
 
 For Unraid, use the dedicated templates:
 
-- [`secondbrain-voice-gateway.xml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/unraid/secondbrain-voice-gateway.xml)
-- [`docker-socket-proxy.xml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/unraid/docker-socket-proxy.xml)
+- [`secondbrain-voice-gateway.xml`](examples/unraid/secondbrain-voice-gateway.xml)
+- [`docker-socket-proxy.xml`](examples/unraid/docker-socket-proxy.xml)
 
 Why two templates are needed:
 
@@ -377,7 +377,7 @@ AI_BASE_URL=https://api.openai.com/v1
 AI_MODEL=gpt-4o-mini
 ```
 
-Full step-by-step Unraid notes are in [`docs/unraid.md`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/docs/unraid.md).
+Full step-by-step Unraid notes are in [`docs/unraid.md`](docs/unraid.md).
 
 ## Broker OAuth Deployment
 
@@ -468,7 +468,7 @@ Typical failure modes:
 - SecondBrain answers fail
   - Check `/health`, bearer token, and the expected `/query` payload field
 - Mail ingestion answers are vague
-  - Extend [`configs/troubleshooting_knowledge.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/troubleshooting_knowledge.yml) with a more specific playbook
+  - Extend [`configs/troubleshooting_knowledge.yml`](configs/troubleshooting_knowledge.yml) with a more specific playbook
 
 ## Major Design Decisions
 
@@ -503,6 +503,12 @@ If the answer source seems wrong:
 
 - inspect the routing decision from `POST /api/v1/query`
 - inspect the stored `prepared_question`, `matched_rule`, and `route` inside `data/request_history/*.jsonl`
-- check aliases in [`configs/home_assistant_aliases.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/home_assistant_aliases.yml)
-- check monitored containers in [`configs/docker_services.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/docker_services.yml)
-- extend troubleshooting entries in [`configs/troubleshooting_knowledge.yml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/configs/troubleshooting_knowledge.yml)
+- check aliases in [`configs/home_assistant_aliases.yml`](configs/home_assistant_aliases.yml)
+- check monitored containers in [`configs/docker_services.yml`](configs/docker_services.yml)
+- extend troubleshooting entries in [`configs/troubleshooting_knowledge.yml`](configs/troubleshooting_knowledge.yml)
+
+
+## License
+
+No license grant is currently included. All rights remain reserved until the
+maintainer adds an explicit `LICENSE` file.

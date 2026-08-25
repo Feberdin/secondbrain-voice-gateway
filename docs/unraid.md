@@ -25,8 +25,8 @@ That split keeps the voice gateway away from the raw Docker socket.
 
 ## Template Files
 
-- [`docker-socket-proxy.xml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/unraid/docker-socket-proxy.xml)
-- [`secondbrain-voice-gateway.xml`](/Users/joachim.stiegler/HomeAssistant-AlexaAI/examples/unraid/secondbrain-voice-gateway.xml)
+- [`docker-socket-proxy.xml`](../examples/unraid/docker-socket-proxy.xml)
+- [`secondbrain-voice-gateway.xml`](../examples/unraid/secondbrain-voice-gateway.xml)
 
 ## Unraid Terminal Commands
 
