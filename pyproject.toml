@@ -13,7 +13,7 @@ authors = [
   { name = "Feberdin" }
 ]
 dependencies = [
-  "cryptography>=45.0.0,<46.0.0",
+  "cryptography>=45.0.0,<51.0.0",
   "fastapi>=0.115.0,<1.0.0",
   "httpx>=0.28.0,<0.29.0",
   "pydantic>=2.11.0,<3.0.0",
@@ -24,7 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.3.0,<9.0.0",
+  "pytest>=8.3.0,<10.0.0",
   "pytest-asyncio>=1.0.0,<2.0.0"
 ]
 
