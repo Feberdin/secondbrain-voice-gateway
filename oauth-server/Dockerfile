@@ -3,7 +3,7 @@
 # Invariants: The image runs as the non-root node user and expects configuration via environment variables.
 # Debugging: Rebuild with `docker compose build --no-cache` if dependency resolution or startup imports fail.
 
-FROM node:20-bookworm-slim
+FROM node:26-bookworm-slim
 
 ENV NODE_ENV=production
 
