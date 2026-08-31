@@ -3,7 +3,7 @@
 # Invariants: The container runs as a non-root user and expects config via env vars and mounted files.
 # Debugging: Rebuild with `docker compose build --no-cache` if dependency or import issues appear.
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
